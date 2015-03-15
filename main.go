@@ -26,7 +26,7 @@ func main() {
 func doRequest() error {
 	client := http.Client{
 		Timeout: timeout,
-  }
+	}
 	resp, err := client.Get("https://nodegear.io/ping") // http://127.0.0.1:1337
 	if err != nil {
 		return err

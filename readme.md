@@ -13,6 +13,7 @@ How to run:
 Environment variables:
 ----------------------
 
-| Name | Example Value | Description |
-| CACHET_API | http://demo.cachethq.io/api | URL endpoint for cachet api |
-| CACHET_TOKEN | randomvalue | API Authentication token |
+| Name         | Example Value               | Description                 |
+| ------------ | --------------------------- | --------------------------- |
+| CACHET_API   | http://demo.cachethq.io/api | URL endpoint for cachet api |
+| CACHET_TOKEN | randomvalue                 | API Authentication token    |

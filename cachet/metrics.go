@@ -33,8 +33,8 @@ func SendMetric(metricId int, delay int64) {
 
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(strconv.Itoa(resp.StatusCode) + " " + string(body))
+	_, _ = ioutil.ReadAll(resp.Body)
+	// fmt.Println(strconv.Itoa(resp.StatusCode) + " " + string(body))
 
 	if resp.StatusCode != 200 {
 		fmt.Println("Could not log data point!")

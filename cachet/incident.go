@@ -33,9 +33,9 @@ func (incident *Incident) Send() {
 
 	var req *http.Request
 	if incident.Id == 0 {
-		req, err = http.NewRequest("POST", apiUrl + "/incidents", bytes.NewBuffer(jsonBytes))
+		req, err = http.NewRequest("POST", Config.API_Url + "/incidents", bytes.NewBuffer(jsonBytes))
 	} else {
-		req, err = http.NewRequest("PUT", apiUrl + "/incidents/" + strconv.Itoa(incident.Id), bytes.NewBuffer(jsonBytes))
+		req, err = http.NewRequest("PUT", Config.API_Url + "/incidents/" + strconv.Itoa(incident.Id), bytes.NewBuffer(jsonBytes))
 	}
 
 	if err != nil {
@@ -43,7 +43,7 @@ func (incident *Incident) Send() {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Cachet-Token", apiToken)
+	req.Header.Set("X-Cachet-Token", Config.API_Token)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

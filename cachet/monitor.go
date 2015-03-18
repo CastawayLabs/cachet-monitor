@@ -17,6 +17,7 @@ type Monitor struct {
 	ExpectedStatusCode int `json:"expected_status_code"`
 
 	History []bool `json:"-"`
+	LastFailReason *string `json:"-"`
 	Incident *Incident `json:"-"`
 }
 
@@ -42,6 +43,8 @@ func (monitor *Monitor) doRequest() bool {
 	}
 	resp, err := client.Get(monitor.Url)
 	if err != nil {
+		errString := err.Error()
+		monitor.LastFailReason = &errString
 		return false
 	}
 
@@ -73,7 +76,11 @@ func (monitor *Monitor) AnalyseData() {
 
 		monitor.Incident = &Incident{
 			Name: monitor.Name,
-			Message: monitor.Name + " is unreachable.",
+			Message: monitor.Name + " failed",
+		}
+
+		if monitor.LastFailReason != nil {
+			monitor.Incident.Message += "\n\n" + *monitor.LastFailReason
 		}
 
 		monitor.Incident.SetInvestigating()

@@ -1,0 +1,14 @@
+{
+  "api_url": "https://demo.cachethq.io/api",
+  "api_token": "9yMHsdioQosnyVK4iCVR",
+  "monitors": [
+    {
+      "name": "nodegear frontend",
+      "url": "https://nodegear.io/ping",
+      "metric_id": 1,
+      "threshold": 80,
+      "component_id": null,
+      "expected_status_code": 200
+    }
+  ]
+}

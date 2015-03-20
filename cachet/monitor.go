@@ -83,7 +83,13 @@ func (monitor *Monitor) AnalyseData() {
 			monitor.Incident.Message += "\n\n" + *monitor.LastFailReason
 		}
 
+		// set investigating status
 		monitor.Incident.SetInvestigating()
+
+		// lookup relevant incident
+		monitor.Incident.GetSimilarIncidentId()
+
+		// create/update incident
 		monitor.Incident.Send()
 	} else if t < monitor.Threshold && monitor.Incident != nil {
 		// was down, created an incident, its now ok, make it resolved.

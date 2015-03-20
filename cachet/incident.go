@@ -2,10 +2,7 @@ package cachet
 
 import (
 	"fmt"
-	"bytes"
-	"io/ioutil"
 	"strconv"
-	"net/http"
 	"encoding/json"
 )
 
@@ -25,35 +22,44 @@ type IncidentData struct {
 	Incident Incident `json:"data"`
 }
 
+type IncidentList struct {
+	Incidents []Incident `json:"data"`
+}
+
+func GetIncidents() []Incident {
+	_, body, err := makeRequest("GET", "/incidents", nil)
+	if err != nil {
+		panic(err)
+	}
+
+	var data IncidentList
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Println("Cannot parse incidents.")
+		panic(err)
+	}
+
+	return data.Incidents
+}
+
 func (incident *Incident) Send() {
 	jsonBytes, err := json.Marshal(incident)
 	if err != nil {
 		panic(err)
 	}
 
-	var req *http.Request
-	if incident.Id == 0 {
-		req, err = http.NewRequest("POST", Config.API_Url + "/incidents", bytes.NewBuffer(jsonBytes))
-	} else {
-		req, err = http.NewRequest("PUT", Config.API_Url + "/incidents/" + strconv.Itoa(incident.Id), bytes.NewBuffer(jsonBytes))
+	requestType := "POST"
+	requestUrl := "/incidents"
+	if incident.Id > 0 {
+		requestType = "PUT"
+		requestUrl = "/incidents/" + strconv.Itoa(incident.Id)
 	}
 
+	resp, body, err := makeRequest(requestType, requestUrl, jsonBytes)
 	if err != nil {
 		panic(err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Cachet-Token", Config.API_Token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
 	fmt.Println(strconv.Itoa(resp.StatusCode) + " " + string(body))
 
 	var data IncidentData
@@ -69,6 +75,18 @@ func (incident *Incident) Send() {
 
 	if resp.StatusCode != 200 {
 		fmt.Println("Could not create/update incident!")
+	}
+}
+
+func (incident *Incident) GetSimilarIncidentId() {
+	incidents := GetIncidents()
+
+	for _, inc := range incidents {
+		if incident.Name == inc.Name && incident.Message == inc.Message && incident.Status == inc.Status && incident.Human_status == inc.Human_status {
+			incident.Id = inc.Id
+			fmt.Printf("Updated incident id to %v\n", inc.Id)
+			break
+		}
 	}
 }
 

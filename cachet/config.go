@@ -26,8 +26,8 @@ func init() {
 	var data []byte
 
 	// test if its a url
-	_, err := url.ParseRequestURI(configPath)
-	if err == nil {
+	url, err := url.ParseRequestURI(configPath)
+	if err == nil && len(url.Scheme) > 0 {
 		// download config
 		response, err := http.Get(configPath)
 		if err != nil {

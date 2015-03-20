@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 )
 
-func SendMetric(metricId int, delay int64) {
-	if metricId <= 0 {
+// Send lag metric point
+func SendMetric(metricID int, delay int64) {
+	if metricID <= 0 {
 		return
 	}
 
@@ -15,7 +16,7 @@ func SendMetric(metricId int, delay int64) {
 		"value": delay,
 	})
 
-	resp, _, err := makeRequest("POST", "/metrics/" + strconv.Itoa(metricId) + "/points", jsonBytes)
+	resp, _, err := makeRequest("POST", "/metrics/" + strconv.Itoa(metricID) + "/points", jsonBytes)
 	if err != nil || resp.StatusCode != 200 {
 		fmt.Printf("Could not log data point!\n%v\n", err)
 		return

@@ -8,12 +8,13 @@ import (
 
 const timeout = time.Duration(time.Second)
 
+// Monitor data model
 type Monitor struct {
 	Name string `json:"name"`
-	Url string `json:"url"`
-	MetricId int `json:"metric_id"`
+	URL string `json:"url"`
+	MetricID int `json:"metric_id"`
 	Threshold float32 `json:"threshold"`
-	ComponentId *int `json:"component_id"`
+	ComponentID *int `json:"component_id"`
 	ExpectedStatusCode int `json:"expected_status_code"`
 
 	History []bool `json:"-"`
@@ -21,6 +22,7 @@ type Monitor struct {
 	Incident *Incident `json:"-"`
 }
 
+// Run loop
 func (monitor *Monitor) Run() {
 	reqStart := getMs()
 	isUp := monitor.doRequest()
@@ -53,6 +55,7 @@ func (monitor *Monitor) doRequest() bool {
 	return resp.StatusCode == monitor.ExpectedStatusCode
 }
 
+// Decides if the monitor is statistically up or down and creates / resolves an incident
 func (monitor *Monitor) AnalyseData() {
 	// look at the past few incidents
 	numDown := 0

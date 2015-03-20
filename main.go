@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	fmt.Printf("API: %s\n", cachet.Config.API_Url)
+	fmt.Printf("API: %s\n", cachet.Config.APIUrl)
 	fmt.Printf("Starting %d monitors:\n", len(cachet.Config.Monitors))
 	for _, monitor := range cachet.Config.Monitors {
 		fmt.Printf(" %s: GET %s & Expect HTTP %d\n", monitor.Name, monitor.Url, monitor.ExpectedStatusCode)

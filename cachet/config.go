@@ -10,11 +10,13 @@ import (
 	"encoding/json"
 )
 
+// Static config
 var Config CachetConfig
 
+// Monitoring tool configuration
 type CachetConfig struct {
-	API_Url string `json:"api_url"`
-	API_Token string `json:"api_token"`
+	APIUrl string `json:"api_url"`
+	APIToken string `json:"api_token"`
 	Monitors []*Monitor `json:"monitors"`
 }
 
@@ -56,13 +58,13 @@ func init() {
 	}
 
 	if len(os.Getenv("CACHET_API")) > 0 {
-		Config.API_Url = os.Getenv("CACHET_API")
+		Config.APIUrl = os.Getenv("CACHET_API")
 	}
 	if len(os.Getenv("CACHET_TOKEN")) > 0 {
-		Config.API_Token = os.Getenv("CACHET_TOKEN")
+		Config.APIToken = os.Getenv("CACHET_TOKEN")
 	}
 
-	if len(Config.API_Token) == 0 || len(Config.API_Url) == 0 {
+	if len(Config.APIToken) == 0 || len(Config.APIUrl) == 0 {
 		fmt.Printf("API URL or API Token not set. cachet-monitor won't be able to report incidents.\n\nPlease set:\n CACHET_API and CACHET_TOKEN environment variable to override settings.\n\nGet help at https://github.com/CastawayLabs/cachet-monitor\n")
 		os.Exit(1)
 	}

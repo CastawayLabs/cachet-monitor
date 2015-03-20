@@ -2,24 +2,24 @@ package cachet
 
 import (
 	"fmt"
-	"time"
 	"net/http"
+	"time"
 )
 
 const timeout = time.Duration(time.Second)
 
 // Monitor data model
 type Monitor struct {
-	Name string `json:"name"`
-	URL string `json:"url"`
-	MetricID int `json:"metric_id"`
-	Threshold float32 `json:"threshold"`
-	ComponentID *int `json:"component_id"`
-	ExpectedStatusCode int `json:"expected_status_code"`
+	Name               string  `json:"name"`
+	URL                string  `json:"url"`
+	MetricID           int     `json:"metric_id"`
+	Threshold          float32 `json:"threshold"`
+	ComponentID        *int    `json:"component_id"`
+	ExpectedStatusCode int     `json:"expected_status_code"`
 
-	History []bool `json:"-"`
-	LastFailReason *string `json:"-"`
-	Incident *Incident `json:"-"`
+	History        []bool    `json:"-"`
+	LastFailReason *string   `json:"-"`
+	Incident       *Incident `json:"-"`
 }
 
 // Run loop
@@ -66,7 +66,7 @@ func (monitor *Monitor) AnalyseData() {
 	}
 
 	t := (float32(numDown) / float32(len(monitor.History))) * 100
-	fmt.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.Url, t, time.Now().UnixNano() / int64(time.Second), monitor.Threshold)
+	fmt.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.Url, t, time.Now().UnixNano()/int64(time.Second), monitor.Threshold)
 
 	if len(monitor.History) != 10 {
 		// not enough data
@@ -78,7 +78,7 @@ func (monitor *Monitor) AnalyseData() {
 		fmt.Println("Creating incident...")
 
 		monitor.Incident = &Incident{
-			Name: monitor.Name,
+			Name:    monitor.Name,
 			Message: monitor.Name + " failed",
 		}
 

@@ -1,22 +1,22 @@
 package cachet
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
-	"encoding/json"
 )
 
 // Incident Cachet data model
 type Incident struct {
-	ID int `json:"id"`
-	Name string `json:"name"`
-	Message string `json:"message"`
-	Status int `json:"status"`// 4?
-	HumanStatus string `json:"human_status"`
-	Component *Component `json:"component"`
-	ComponentID *int `json:"component_id"`
-	CreatedAt int `json:"created_at"`
-	UpdatedAt int `json:"updated_at"`
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	Message     string     `json:"message"`
+	Status      int        `json:"status"` // 4?
+	HumanStatus string     `json:"human_status"`
+	Component   *Component `json:"component"`
+	ComponentID *int       `json:"component_id"`
+	CreatedAt   int        `json:"created_at"`
+	UpdatedAt   int        `json:"updated_at"`
 }
 
 // IncidentData is a response when creating/updating an incident
@@ -75,7 +75,7 @@ func (incident *Incident) Send() {
 		incident.ID = data.Incident.ID
 	}
 
-	fmt.Println("ID:"+strconv.Itoa(incident.ID))
+	fmt.Println("ID:" + strconv.Itoa(incident.ID))
 
 	if resp.StatusCode != 200 {
 		fmt.Println("Could not create/update incident!")

@@ -1,13 +1,13 @@
 package cachet
 
 import (
-	"os"
-	"fmt"
-	"flag"
-	"net/url"
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
 )
 
 // Static config
@@ -15,8 +15,8 @@ var Config CachetConfig
 
 // CachetConfig is the monitoring tool configuration
 type CachetConfig struct {
-	APIUrl string `json:"api_url"`
-	APIToken string `json:"api_token"`
+	APIUrl   string     `json:"api_url"`
+	APIToken string     `json:"api_token"`
 	Monitors []*Monitor `json:"monitors"`
 }
 

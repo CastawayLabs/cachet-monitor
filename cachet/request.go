@@ -7,7 +7,7 @@ import (
 )
 
 func makeRequest(requestType string, url string, reqBody []byte) (*http.Response, []byte, error) {
-	req, err := http.NewRequest(requestType, Config.APIUrl + url, bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest(requestType, Config.APIUrl+url, bytes.NewBuffer(reqBody))
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Cachet-Token", Config.APIToken)

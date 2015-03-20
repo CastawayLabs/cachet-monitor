@@ -82,9 +82,9 @@ func (incident *Incident) Send() {
 	}
 }
 
-// Get the same incident.
-// GetSimilarIncidentId Updates incident.ID
-func (incident *Incident) GetSimilarIncidentId() {
+// GetSimilarIncidentId gets the same incident.
+// Updates incident.ID
+func (incident *Incident) GetSimilarIncidentID() {
 	incidents := GetIncidents()
 
 	for _, inc := range incidents {

@@ -34,8 +34,8 @@ func (monitor *Monitor) Run() {
 	monitor.History = append(monitor.History, isUp)
 	monitor.AnalyseData()
 
-	if isUp == true && monitor.MetricId > 0 {
-		SendMetric(monitor.MetricId, lag)
+	if isUp == true && monitor.MetricID > 0 {
+		SendMetric(monitor.MetricID, lag)
 	}
 }
 
@@ -43,7 +43,7 @@ func (monitor *Monitor) doRequest() bool {
 	client := &http.Client{
 		Timeout: timeout,
 	}
-	resp, err := client.Get(monitor.Url)
+	resp, err := client.Get(monitor.URL)
 	if err != nil {
 		errString := err.Error()
 		monitor.LastFailReason = &errString
@@ -66,7 +66,7 @@ func (monitor *Monitor) AnalyseData() {
 	}
 
 	t := (float32(numDown) / float32(len(monitor.History))) * 100
-	fmt.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.Url, t, time.Now().UnixNano()/int64(time.Second), monitor.Threshold)
+	fmt.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.URL, t, time.Now().UnixNano()/int64(time.Second), monitor.Threshold)
 
 	if len(monitor.History) != 10 {
 		// not enough data
@@ -90,7 +90,7 @@ func (monitor *Monitor) AnalyseData() {
 		monitor.Incident.SetInvestigating()
 
 		// lookup relevant incident
-		monitor.Incident.GetSimilarIncidentId()
+		monitor.Incident.GetSimilarIncidentID()
 
 		// create/update incident
 		monitor.Incident.Send()

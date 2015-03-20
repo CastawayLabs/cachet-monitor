@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Cachet component model
+// Component Cachet model
 type Component struct {
 	ID int `json:"id"`
 	Name string `json:"name"`
@@ -12,7 +12,7 @@ type Component struct {
 	Status int `json:"status"`
 	Link *string `json:"link"`
 	Order *int `json:"order"`
-	GroupId *int `json:"group_id"`
+	GroupID *int `json:"group_id"`
 	CreatedAt *time.Time `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`

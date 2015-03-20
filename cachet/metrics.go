@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 )
 
-// Send lag metric point
+// SendMetric sends lag metric point
 func SendMetric(metricID int, delay int64) {
 	if metricID <= 0 {
 		return

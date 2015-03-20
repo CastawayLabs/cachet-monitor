@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 )
 
-// Cachet Incident data model
+// Incident Cachet data model
 type Incident struct {
 	ID int `json:"id"`
 	Name string `json:"name"`
@@ -14,22 +14,22 @@ type Incident struct {
 	Status int `json:"status"`// 4?
 	HumanStatus string `json:"human_status"`
 	Component *Component `json:"component"`
-	ComponentId *int `json:"component_id"`
+	ComponentID *int `json:"component_id"`
 	CreatedAt int `json:"created_at"`
 	UpdatedAt int `json:"updated_at"`
 }
 
-// Response when creating/updating an incident
+// IncidentData is a response when creating/updating an incident
 type IncidentData struct {
 	Incident Incident `json:"data"`
 }
 
-// from API /incidents
+// IncidentList - from API /incidents
 type IncidentList struct {
 	Incidents []Incident `json:"data"`
 }
 
-// Get list of incidents
+// GetIncidents - Get list of incidents
 func GetIncidents() []Incident {
 	_, body, err := makeRequest("GET", "/incidents", nil)
 	if err != nil {
@@ -45,7 +45,7 @@ func GetIncidents() []Incident {
 	return data.Incidents
 }
 
-// Create or Update incident
+// Send - Create or Update incident
 func (incident *Incident) Send() {
 	jsonBytes, err := json.Marshal(incident)
 	if err != nil {
@@ -83,7 +83,7 @@ func (incident *Incident) Send() {
 }
 
 // Get the same incident.
-// Updates incident.ID
+// GetSimilarIncidentId Updates incident.ID
 func (incident *Incident) GetSimilarIncidentId() {
 	incidents := GetIncidents()
 
@@ -96,25 +96,25 @@ func (incident *Incident) GetSimilarIncidentId() {
 	}
 }
 
-// Set status to Investigating
+// SetInvestigating sets status to Investigating
 func (incident *Incident) SetInvestigating() {
 	incident.Status = 1
 	incident.HumanStatus = "Investigating"
 }
 
-// Set status to Identified
+// SetIdentified sets status to Identified
 func (incident *Incident) SetIdentified() {
 	incident.Status = 2
 	incident.HumanStatus = "Identified"
 }
 
-// Set status to Watching
+// SetWatching sets status to Watching
 func (incident *Incident) SetWatching() {
 	incident.Status = 3
 	incident.HumanStatus = "Watching"
 }
 
-// Set status to Fixed
+// SetFixed sets status to Fixed
 func (incident *Incident) SetFixed() {
 	incident.Status = 4
 	incident.HumanStatus = "Fixed"

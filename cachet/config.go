@@ -13,7 +13,7 @@ import (
 // Static config
 var Config CachetConfig
 
-// Monitoring tool configuration
+// CachetConfig is the monitoring tool configuration
 type CachetConfig struct {
 	APIUrl string `json:"api_url"`
 	APIToken string `json:"api_token"`

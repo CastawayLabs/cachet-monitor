@@ -55,7 +55,7 @@ func (monitor *Monitor) doRequest() bool {
 	return resp.StatusCode == monitor.ExpectedStatusCode
 }
 
-// Decides if the monitor is statistically up or down and creates / resolves an incident
+// AnalyseData decides if the monitor is statistically up or down and creates / resolves an incident
 func (monitor *Monitor) AnalyseData() {
 	// look at the past few incidents
 	numDown := 0

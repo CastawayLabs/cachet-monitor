@@ -2,7 +2,6 @@ package cachet
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 )
 
@@ -13,7 +12,7 @@ type Incident struct {
 	Message     string     `json:"message"`
 	Status      int        `json:"status"` // 4?
 	HumanStatus string     `json:"human_status"`
-	Component   *Component `json:"component"`
+	Component   *Component `json:"-"`
 	ComponentID *int       `json:"component_id"`
 	CreatedAt   int        `json:"created_at"`
 	UpdatedAt   int        `json:"updated_at"`
@@ -33,13 +32,14 @@ type IncidentList struct {
 func GetIncidents() []Incident {
 	_, body, err := makeRequest("GET", "/incidents", nil)
 	if err != nil {
-		panic(err)
+		Logger.Printf("Cannot get incidents: %v\n", err)
+		return []Incident{}
 	}
 
 	var data IncidentList
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		fmt.Println("Cannot parse incidents.")
+		Logger.Printf("Cannot parse incidents: %v\n", err)
 	}
 
 	return data.Incidents
@@ -49,7 +49,8 @@ func GetIncidents() []Incident {
 func (incident *Incident) Send() {
 	jsonBytes, err := json.Marshal(incident)
 	if err != nil {
-		panic(err)
+		Logger.Printf("Cannot encode incident: %v\n", err)
+		return
 	}
 
 	requestType := "POST"
@@ -61,24 +62,25 @@ func (incident *Incident) Send() {
 
 	resp, body, err := makeRequest(requestType, requestURL, jsonBytes)
 	if err != nil {
-		panic(err)
+		Logger.Printf("Cannot create/update incident: %v\n", err)
+		return
 	}
 
-	fmt.Println(strconv.Itoa(resp.StatusCode) + " " + string(body))
+	Logger.Println(strconv.Itoa(resp.StatusCode) + " " + string(body))
 
 	var data IncidentData
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		fmt.Println("Cannot parse incident body.")
+		Logger.Println("Cannot parse incident body.")
 		panic(err)
 	} else {
 		incident.ID = data.Incident.ID
 	}
 
-	fmt.Println("ID:" + strconv.Itoa(incident.ID))
+	Logger.Println("ID:" + strconv.Itoa(incident.ID))
 
 	if resp.StatusCode != 200 {
-		fmt.Println("Could not create/update incident!")
+		Logger.Println("Could not create/update incident!")
 	}
 }
 
@@ -90,7 +92,7 @@ func (incident *Incident) GetSimilarIncidentID() {
 	for _, inc := range incidents {
 		if incident.Name == inc.Name && incident.Message == inc.Message && incident.Status == inc.Status && incident.HumanStatus == inc.HumanStatus {
 			incident.ID = inc.ID
-			fmt.Printf("Updated incident id to %v\n", inc.ID)
+			Logger.Printf("Updated incident id to %v\n", inc.ID)
 			break
 		}
 	}

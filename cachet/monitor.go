@@ -1,7 +1,6 @@
 package cachet
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -66,7 +65,7 @@ func (monitor *Monitor) AnalyseData() {
 	}
 
 	t := (float32(numDown) / float32(len(monitor.History))) * 100
-	fmt.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.URL, t, time.Now().UnixNano()/int64(time.Second), monitor.Threshold)
+	Logger.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.URL, t, time.Now().UnixNano()/int64(time.Second), monitor.Threshold)
 
 	if len(monitor.History) != 10 {
 		// not enough data
@@ -75,7 +74,7 @@ func (monitor *Monitor) AnalyseData() {
 
 	if t > monitor.Threshold && monitor.Incident == nil {
 		// is down, create an incident
-		fmt.Println("Creating incident...")
+		Logger.Println("Creating incident...")
 
 		monitor.Incident = &Incident{
 			Name:    monitor.Name + " - " + Config.SystemName,
@@ -96,7 +95,7 @@ func (monitor *Monitor) AnalyseData() {
 		monitor.Incident.Send()
 	} else if t < monitor.Threshold && monitor.Incident != nil {
 		// was down, created an incident, its now ok, make it resolved.
-		fmt.Println("Updating incident to resolved...")
+		Logger.Println("Updating incident to resolved...")
 
 		monitor.Incident.SetFixed()
 		monitor.Incident.Send()

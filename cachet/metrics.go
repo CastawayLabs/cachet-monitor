@@ -2,7 +2,6 @@ package cachet
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 )
 
@@ -18,7 +17,7 @@ func SendMetric(metricID int, delay int64) {
 
 	resp, _, err := makeRequest("POST", "/metrics/"+strconv.Itoa(metricID)+"/points", jsonBytes)
 	if err != nil || resp.StatusCode != 200 {
-		fmt.Printf("Could not log data point!\n%v\n", err)
+		Logger.Printf("Could not log data point!\n%v\n", err)
 		return
 	}
 }

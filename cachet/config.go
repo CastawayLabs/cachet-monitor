@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/castawaylabs/cachet-monitor/system"
+	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,6 +15,8 @@ import (
 
 // Static config
 var Config CachetConfig
+// Central logger
+var Logger *log.Logger
 
 // CachetConfig is the monitoring tool configuration
 type CachetConfig struct {
@@ -20,13 +24,16 @@ type CachetConfig struct {
 	APIToken   string     `json:"api_token"`
 	Monitors   []*Monitor `json:"monitors"`
 	SystemName string     `json:"system_name"`
+	LogPath    string     `json:"log_path"`
 }
 
 func init() {
 	var configPath string
 	var systemName string
+	var logPath string
 	flag.StringVar(&configPath, "c", "/etc/cachet-monitor.config.json", "Config path")
 	flag.StringVar(&systemName, "name", "", "System Name")
+	flag.StringVar(&logPath, "log", "", "Log path")
 	flag.Parse()
 
 	var data []byte
@@ -42,7 +49,6 @@ func init() {
 		}
 
 		defer response.Body.Close()
-
 		data, _ = ioutil.ReadAll(response.Body)
 
 		fmt.Println("Downloaded network configuration.")
@@ -85,4 +91,20 @@ func init() {
 		fmt.Printf("No monitors defined!\nSee sample configuration: https://github.com/CastawayLabs/cachet-monitor/blob/master/example.config.json\n")
 		os.Exit(1)
 	}
+
+	if len(logPath) > 0 {
+		Config.LogPath = logPath
+	}
+
+	var logWriter io.Writer
+	logWriter = os.Stdout
+	if len(Config.LogPath) > 0 {
+		logWriter, err = os.Create(Config.LogPath)
+		if err != nil {
+			fmt.Printf("Unable to open file '%v' for logging\n", Config.LogPath)
+			os.Exit(1)
+		}
+	}
+
+	Logger = log.New(logWriter, "", log.Llongfile | log.Ldate | log.Ltime)
 }

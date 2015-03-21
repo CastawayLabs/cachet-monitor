@@ -3,8 +3,59 @@ Cachet Monitor plugin
 
 This is a monitoring plugin for CachetHQ.
 
-How to run:
------------
+Features
+--------
+
+- [x] Creates & Resolves Incidents
+- [x] Posts monitor lag every second
+- [x] Updates Component to Partial Outage
+- [x] Updates Component to Major Outage if in Partial Outage
+- [x] Can be run on multiple servers and geo regions
+
+Docker Quickstart
+-----------------
+
+1. Create a configuration json
+2. 
+```
+docker run -d \
+  --name cachet-monitor \
+  -h cachet-monitor \
+  -v `pwd`/config.json:/etc/cachet-monitor.config.json \
+  castawaylabs/cachet-monitor
+```
+
+Configuration
+-------------
+
+```
+{
+  "api_url": "https://demo.cachethq.io/api",
+  "api_token": "9yMHsdioQosnyVK4iCVR",
+  "monitors": [
+    {
+      "name": "nodegear frontend",
+      "url": "https://nodegear.io/ping",
+      "metric_id": 0,
+      "component_id": 0,
+      "threshold": 80,
+      "component_id": null,
+      "expected_status_code": 200
+    }
+  ]
+}
+```
+
+*Notes:*
+
+- `metric_id` is optional
+- `component_id` is optional
+- `threshold` is a percentage
+- `expected_status_code` is a http response code
+- GET request will be performed on the `url`
+
+How to run
+----------
 
 Example:
 
@@ -17,8 +68,15 @@ Production:
 1. Download the example config and save to `/etc/cachet-monitor.config.json`
 2. Run in background: `nohup cachet-monitor 2>&1 > /var/log/cachet-monitor.log &`
 
-Environment variables:
-----------------------
+```
+Usage of cachet-monitor:
+  -c="/etc/cachet-monitor.config.json": Config path
+  -log="": Log path
+  -name="": System Name
+```
+
+Environment variables
+---------------------
 
 | Name         | Example Value               | Description                 |
 | ------------ | --------------------------- | --------------------------- |

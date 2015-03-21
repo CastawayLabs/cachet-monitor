@@ -78,7 +78,7 @@ func (monitor *Monitor) AnalyseData() {
 		fmt.Println("Creating incident...")
 
 		monitor.Incident = &Incident{
-			Name:    monitor.Name,
+			Name:    monitor.Name + " - " + Config.SystemName,
 			Message: monitor.Name + " failed",
 		}
 

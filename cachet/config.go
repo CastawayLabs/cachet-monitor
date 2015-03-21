@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/castawaylabs/cachet-monitor/system"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,14 +16,17 @@ var Config CachetConfig
 
 // CachetConfig is the monitoring tool configuration
 type CachetConfig struct {
-	APIUrl   string     `json:"api_url"`
-	APIToken string     `json:"api_token"`
-	Monitors []*Monitor `json:"monitors"`
+	APIUrl     string     `json:"api_url"`
+	APIToken   string     `json:"api_token"`
+	Monitors   []*Monitor `json:"monitors"`
+	SystemName string     `json:"system_name"`
 }
 
 func init() {
 	var configPath string
+	var systemName string
 	flag.StringVar(&configPath, "c", "/etc/cachet-monitor.config.json", "Config path")
+	flag.StringVar(&systemName, "name", "", "System Name")
 	flag.Parse()
 
 	var data []byte
@@ -55,6 +59,14 @@ func init() {
 	if err != nil {
 		fmt.Println("Cannot parse config!")
 		os.Exit(1)
+	}
+
+	if len(systemName) > 0 {
+		Config.SystemName = systemName
+	}
+	if len(Config.SystemName) == 0 {
+		// get hostname
+		Config.SystemName = system.GetHostname()
 	}
 
 	if len(os.Getenv("CACHET_API")) > 0 {

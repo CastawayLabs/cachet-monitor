@@ -15,6 +15,7 @@ import (
 
 // Static config
 var Config CachetConfig
+
 // Central logger
 var Logger *log.Logger
 
@@ -106,5 +107,5 @@ func init() {
 		}
 	}
 
-	Logger = log.New(logWriter, "", log.Llongfile | log.Ldate | log.Ltime)
+	Logger = log.New(logWriter, "", log.Llongfile|log.Ldate|log.Ltime)
 }

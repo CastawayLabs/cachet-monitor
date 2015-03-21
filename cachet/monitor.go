@@ -77,8 +77,9 @@ func (monitor *Monitor) AnalyseData() {
 		Logger.Println("Creating incident...")
 
 		monitor.Incident = &Incident{
-			Name:    monitor.Name + " - " + Config.SystemName,
-			Message: monitor.Name + " failed",
+			Name:        monitor.Name + " - " + Config.SystemName,
+			Message:     monitor.Name + " failed",
+			ComponentID: monitor.ComponentID,
 		}
 
 		if monitor.LastFailReason != nil {
@@ -93,12 +94,17 @@ func (monitor *Monitor) AnalyseData() {
 
 		// create/update incident
 		monitor.Incident.Send()
+		monitor.Incident.UpdateComponent()
 	} else if t < monitor.Threshold && monitor.Incident != nil {
 		// was down, created an incident, its now ok, make it resolved.
 		Logger.Println("Updating incident to resolved...")
 
+		// Add resolved message
+		monitor.Incident.Message += "\n\n-\n\nResolved at " + time.Now().String()
+
 		monitor.Incident.SetFixed()
 		monitor.Incident.Send()
+		monitor.Incident.UpdateComponent()
 
 		monitor.Incident = nil
 	}

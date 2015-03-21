@@ -57,7 +57,7 @@ func (incident *Incident) Send() {
 	requestURL := "/incidents"
 	if incident.ID > 0 {
 		requestType = "PUT"
-		requestURL = "/incidents/" + strconv.Itoa(incident.ID)
+		requestURL += "/" + strconv.Itoa(incident.ID)
 	}
 
 	resp, body, err := makeRequest(requestType, requestURL, jsonBytes)
@@ -75,9 +75,8 @@ func (incident *Incident) Send() {
 		panic(err)
 	} else {
 		incident.ID = data.Incident.ID
+		incident.Component = data.Incident.Component
 	}
-
-	Logger.Println("ID:" + strconv.Itoa(incident.ID))
 
 	if resp.StatusCode != 200 {
 		Logger.Println("Could not create/update incident!")
@@ -95,6 +94,59 @@ func (incident *Incident) GetSimilarIncidentID() {
 			Logger.Printf("Updated incident id to %v\n", inc.ID)
 			break
 		}
+	}
+}
+
+func (incident *Incident) fetchComponent() error {
+	_, body, err := makeRequest("GET", "/components/" + strconv.Itoa(*incident.ComponentID), nil)
+	if err != nil {
+		return err
+	}
+
+	var data ComponentData
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		Logger.Println("Cannot parse component body.")
+		panic(err)
+	}
+
+	incident.Component = &data.Component
+
+	return nil
+}
+
+func (incident *Incident) UpdateComponent() {
+	if incident.ComponentID == nil || *incident.ComponentID == 0 {
+		return
+	}
+
+	if incident.Component == nil {
+		// fetch component
+		if err := incident.fetchComponent(); err != nil {
+			Logger.Printf("Cannot fetch component for incident. %v\n", err)
+			return
+		}
+	}
+
+	switch incident.Status {
+	case 1, 2, 3:
+		if incident.Component.Status == 3 {
+			incident.Component.Status = 4
+		} else {
+			incident.Component.Status = 3
+		}
+	case 4:
+		incident.Component.Status = 1
+	}
+
+	jsonBytes, _ := json.Marshal(map[string]interface{}{
+		"status": incident.Component.Status,
+	})
+
+	resp, _, err := makeRequest("PUT", "/components/" + strconv.Itoa(incident.Component.ID), jsonBytes)
+	if err != nil || resp.StatusCode != 200 {
+		Logger.Printf("Could not update component: (resp code %d) %v", resp.StatusCode, err)
+		return
 	}
 }
 

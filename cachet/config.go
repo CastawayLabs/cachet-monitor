@@ -107,5 +107,10 @@ func init() {
 		}
 	}
 
-	Logger = log.New(logWriter, "", log.Llongfile|log.Ldate|log.Ltime)
+	flags := log.Llongfile|log.Ldate|log.Ltime
+	if len(os.Getenv("DEVELOPMENT")) > 0 {
+		flags = 0
+	}
+
+	Logger = log.New(logWriter, "", flags)
 }

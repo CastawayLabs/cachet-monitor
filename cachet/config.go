@@ -23,6 +23,7 @@ var Logger *log.Logger
 type CachetConfig struct {
 	APIUrl     string     `json:"api_url"`
 	APIToken   string     `json:"api_token"`
+	Interval   int64      `json:"interval"`
 	Monitors   []*Monitor `json:"monitors"`
 	SystemName string     `json:"system_name"`
 	LogPath    string     `json:"log_path"`
@@ -107,7 +108,7 @@ func init() {
 		}
 	}
 
-	flags := log.Llongfile|log.Ldate|log.Ltime
+	flags := log.Llongfile | log.Ldate | log.Ltime
 	if len(os.Getenv("DEVELOPMENT")) > 0 {
 		flags = 0
 	}

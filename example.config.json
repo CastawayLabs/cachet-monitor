@@ -1,6 +1,7 @@
 {
   "api_url": "https://demo.cachethq.io/api",
   "api_token": "9yMHsdioQosnyVK4iCVR",
+  "interval": 60,
   "monitors": [
     {
       "name": "nodegear frontend",

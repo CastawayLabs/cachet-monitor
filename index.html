@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Cachet-monitor by CastawayLabs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Cachet-monitor</h1>
+      <h2 class="project-tagline">Monitors a URL and posts data points to cachet</h2>
+      <a href="https://github.com/CastawayLabs/cachet-monitor" class="btn">View on GitHub</a>
+      <a href="https://github.com/CastawayLabs/cachet-monitor/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/CastawayLabs/cachet-monitor/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="cachet-monitor-plugin" class="anchor" href="#cachet-monitor-plugin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cachet Monitor plugin</h1>
+
+<p>This is a monitoring plugin for CachetHQ.</p>
+
+<h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul>
+<li>[x] Creates &amp; Resolves Incidents</li>
+<li>[x] Posts monitor lag every second</li>
+<li>[x] Updates Component to Partial Outage</li>
+<li>[x] Updates Component to Major Outage if in Partial Outage</li>
+<li>[x] Can be run on multiple servers and geo regions</li>
+</ul>
+
+<h2>
+<a id="docker-quickstart" class="anchor" href="#docker-quickstart" aria-hidden="true"><span class="octicon octicon-link"></span></a>Docker Quickstart</h2>
+
+<ol>
+<li>Create a configuration json</li>
+<li>
+</ol>
+
+<pre><code>docker run -d \
+  --name cachet-monitor \
+  -h cachet-monitor \
+  -v `pwd`/config.json:/etc/cachet-monitor.config.json \
+  castawaylabs/cachet-monitor
+</code></pre>
+
+<h2>
+<a id="configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<pre><code>{
+  "api_url": "https://demo.cachethq.io/api",
+  "api_token": "9yMHsdioQosnyVK4iCVR",
+  "monitors": [
+    {
+      "name": "nodegear frontend",
+      "url": "https://nodegear.io/ping",
+      "metric_id": 0,
+      "component_id": 0,
+      "threshold": 80,
+      "component_id": null,
+      "expected_status_code": 200,
+      "strict_tls": true
+    }
+  ],
+  "insecure_api": false
+}
+</code></pre>
+
+<p><em>Notes:</em></p>
+
+<ul>
+<li>
+<code>metric_id</code> is optional</li>
+<li>
+<code>insecure_api</code> if true it will ignore HTTPS certificate errors (eg if self-signed)</li>
+<li>
+<code>strict_tls</code> if false (true is default) it will ignore HTTPS certificate errors (eg if monitor uses self-signed certificate)</li>
+<li>
+<code>component_id</code> is optional</li>
+<li>
+<code>threshold</code> is a percentage</li>
+<li>
+<code>expected_status_code</code> is a http response code</li>
+<li>GET request will be performed on the <code>url</code>
+</li>
+</ul>
+
+<h2>
+<a id="how-to-run" class="anchor" href="#how-to-run" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to run</h2>
+
+<p>Example:</p>
+
+<ol>
+<li>Set up <a href="https://golang.org">Go</a>
+</li>
+<li><code>go install github.com/castawaylabs/cachet-monitor</code></li>
+<li><code>cachet-monitor -c https://raw.githubusercontent.com/CastawayLabs/cachet-monitor/master/example.config.json</code></li>
+</ol>
+
+<p>Production:</p>
+
+<ol>
+<li>Download the example config and save to <code>/etc/cachet-monitor.config.json</code>
+</li>
+<li>Run in background: <code>nohup cachet-monitor 2&gt;&amp;1 &gt; /var/log/cachet-monitor.log &amp;</code>
+</li>
+</ol>
+
+<pre><code>Usage of cachet-monitor:
+  -c="/etc/cachet-monitor.config.json": Config path
+  -log="": Log path
+  -name="": System Name
+</code></pre>
+
+<h2>
+<a id="environment-variables" class="anchor" href="#environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Environment variables</h2>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Example Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CACHET_API</td>
+<td><a href="http://demo.cachethq.io/api">http://demo.cachethq.io/api</a></td>
+<td>URL endpoint for cachet api</td>
+</tr>
+<tr>
+<td>CACHET_TOKEN</td>
+<td>randomvalue</td>
+<td>API Authentication token</td>
+</tr>
+</tbody>
+</table>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/CastawayLabs/cachet-monitor">Cachet-monitor</a> is maintained by <a href="https://github.com/CastawayLabs">CastawayLabs</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
+

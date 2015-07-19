@@ -2,6 +2,7 @@ package cachet
 
 import (
 	"bytes"
+	"crypto/tls"
 	"io/ioutil"
 	"net/http"
 )
@@ -13,6 +14,12 @@ func makeRequest(requestType string, url string, reqBody []byte) (*http.Response
 	req.Header.Set("X-Cachet-Token", Config.APIToken)
 
 	client := &http.Client{}
+	if Config.InsecureAPI == true {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, []byte{}, err

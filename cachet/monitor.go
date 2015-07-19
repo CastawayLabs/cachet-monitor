@@ -1,7 +1,10 @@
 package cachet
 
 import (
+	"crypto/tls"
+	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -15,6 +18,7 @@ type Monitor struct {
 	Threshold          float32 `json:"threshold"`
 	ComponentID        *int    `json:"component_id"`
 	ExpectedStatusCode int     `json:"expected_status_code"`
+	StrictTLS          *bool   `json:"strict_tls"`
 
 	History        []bool    `json:"-"`
 	LastFailReason *string   `json:"-"`
@@ -42,6 +46,12 @@ func (monitor *Monitor) doRequest() bool {
 	client := &http.Client{
 		Timeout: timeout,
 	}
+	if monitor.StrictTLS != nil && *monitor.StrictTLS == false {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
 	resp, err := client.Get(monitor.URL)
 	if err != nil {
 		errString := err.Error()
@@ -51,7 +61,13 @@ func (monitor *Monitor) doRequest() bool {
 
 	defer resp.Body.Close()
 
-	return resp.StatusCode == monitor.ExpectedStatusCode
+	if resp.StatusCode != monitor.ExpectedStatusCode {
+		failReason := "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
+		monitor.LastFailReason = &failReason
+		return false
+	}
+
+	return true
 }
 
 // AnalyseData decides if the monitor is statistically up or down and creates / resolves an incident
@@ -76,10 +92,11 @@ func (monitor *Monitor) AnalyseData() {
 		// is down, create an incident
 		Logger.Println("Creating incident...")
 
+		component_id := json.Number(strconv.Itoa(*monitor.ComponentID))
 		monitor.Incident = &Incident{
 			Name:        monitor.Name + " - " + Config.SystemName,
-			Message:     monitor.Name + " failed",
-			ComponentID: monitor.ComponentID,
+			Message:     monitor.Name + " check failed",
+			ComponentID: &component_id,
 		}
 
 		if monitor.LastFailReason != nil {

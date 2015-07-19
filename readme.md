@@ -40,15 +40,19 @@ Configuration
       "component_id": 0,
       "threshold": 80,
       "component_id": null,
-      "expected_status_code": 200
+      "expected_status_code": 200,
+      "strict_tls": true
     }
-  ]
+  ],
+  "insecure_api": false
 }
 ```
 
 *Notes:*
 
 - `metric_id` is optional
+- `insecure_api` if true it will ignore HTTPS certificate errors (eg if self-signed)
+- `strict_tls` if false (true is default) it will ignore HTTPS certificate errors (eg if monitor uses self-signed certificate)
 - `component_id` is optional
 - `threshold` is a percentage
 - `expected_status_code` is a http response code

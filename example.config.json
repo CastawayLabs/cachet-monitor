@@ -8,7 +8,9 @@
       "metric_id": 1,
       "threshold": 80,
       "component_id": null,
-      "expected_status_code": 200
+      "expected_status_code": 200,
+      "strict_tls": true
     }
-  ]
+  ],
+  "insecure_api": false
 }

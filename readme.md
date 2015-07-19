@@ -7,7 +7,7 @@ Features
 --------
 
 - [x] Creates & Resolves Incidents
-- [x] Posts monitor lag every second
+- [x] Posts monitor lag every second * config.Interval
 - [x] Updates Component to Partial Outage
 - [x] Updates Component to Major Outage if in Partial Outage
 - [x] Can be run on multiple servers and geo regions
@@ -32,6 +32,7 @@ Configuration
 {
   "api_url": "https://demo.cachethq.io/api",
   "api_token": "9yMHsdioQosnyVK4iCVR",
+  "interval": 60,
   "monitors": [
     {
       "name": "nodegear frontend",

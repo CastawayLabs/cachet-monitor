@@ -32,7 +32,7 @@ Configuration
 
 ```
 {
-  "api_url": "https://demo.cachethq.io/api",
+  "api_url": "https://demo.cachethq.io/api/v1",
   "api_token": "9yMHsdioQosnyVK4iCVR",
   "monitors": [
     {

@@ -3,6 +3,8 @@ Cachet Monitor plugin
 
 This is a monitoring plugin for CachetHQ.
 
+![screenshot](https://castawaylabs.github.io/cachet-monitor/screenshot.png)
+
 Features
 --------
 

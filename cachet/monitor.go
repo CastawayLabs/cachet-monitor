@@ -100,14 +100,11 @@ func (monitor *Monitor) AnalyseData() {
 		}
 
 		if monitor.LastFailReason != nil {
-			monitor.Incident.Message += "\n\n" + *monitor.LastFailReason
+			monitor.Incident.Message += "\n\n - " + *monitor.LastFailReason
 		}
 
 		// set investigating status
 		monitor.Incident.SetInvestigating()
-
-		// lookup relevant incident
-		monitor.Incident.GetSimilarIncidentID()
 
 		// create/update incident
 		monitor.Incident.Send()
@@ -116,8 +113,12 @@ func (monitor *Monitor) AnalyseData() {
 		// was down, created an incident, its now ok, make it resolved.
 		Logger.Println("Updating incident to resolved...")
 
-		// Add resolved message
-		monitor.Incident.Message += "\n\n-\n\nResolved at " + time.Now().String()
+		component_id := json.Number(strconv.Itoa(*monitor.ComponentID))
+		monitor.Incident = &Incident{
+			Name: monitor.Incident.Name,
+			Message: monitor.Name + " check succeeded",
+			ComponentID: &component_id,
+		}
 
 		monitor.Incident.SetFixed()
 		monitor.Incident.Send()

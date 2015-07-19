@@ -86,20 +86,6 @@ func (incident *Incident) Send() {
 	}
 }
 
-// GetSimilarIncidentID gets the same incident.
-// Updates incident.ID
-func (incident *Incident) GetSimilarIncidentID() {
-	incidents := GetIncidents()
-
-	for _, inc := range incidents {
-		if incident.Name == inc.Name && incident.Message == inc.Message && incident.Status == inc.Status {
-			incident.ID = inc.ID
-			Logger.Printf("Updated incident id to %v\n", inc.ID)
-			break
-		}
-	}
-}
-
 func (incident *Incident) fetchComponent() error {
 	_, body, err := makeRequest("GET", "/components/"+string(*incident.ComponentID), nil)
 	if err != nil {

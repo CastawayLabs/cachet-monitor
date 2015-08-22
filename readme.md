@@ -41,7 +41,6 @@ Configuration
       "metric_id": 0,
       "component_id": 0,
       "threshold": 80,
-      "component_id": null,
       "expected_status_code": 200,
       "strict_tls": true
     }

@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/castawaylabs/cachet-monitor/system"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/castawaylabs/cachet-monitor/system"
 )
 
 // Static config
@@ -67,6 +68,13 @@ func init() {
 	if err != nil {
 		fmt.Println("Cannot parse config!")
 		os.Exit(1)
+	}
+
+	for _, mon := range Config.Monitors {
+		if mon.Interval <= 0 {
+			mon.Interval = 1
+		}
+		mon.stopC = make(chan struct{})
 	}
 
 	if len(systemName) > 0 {

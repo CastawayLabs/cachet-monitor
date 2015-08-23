@@ -1,8 +1,12 @@
 package main
 
 import (
-	"github.com/castawaylabs/cachet-monitor/cachet"
+	"os"
+	"os/signal"
+	"sync"
 	"time"
+
+	"github.com/castawaylabs/cachet-monitor/cachet"
 )
 
 func main() {
@@ -20,10 +24,31 @@ func main() {
 
 	log.Println()
 
-	ticker := time.NewTicker(time.Second)
-	for range ticker.C {
-		for _, mon := range config.Monitors {
-			go mon.Run()
-		}
+	wg := &sync.WaitGroup{}
+	for _, mon := range config.Monitors {
+		wg.Add(1)
+		go func(mon *cachet.Monitor) {
+			ticker := time.NewTicker(mon.Interval * time.Second)
+			for {
+				select {
+				case <-ticker.C:
+					mon.Run()
+				case <-mon.StopC():
+					wg.Done()
+					return
+				}
+			}
+		}(mon)
 	}
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, os.Kill)
+	<-signals
+
+	log.Println("Waiting monitors to end current operation")
+	for _, mon := range config.Monitors {
+		mon.Stop()
+	}
+
+	wg.Wait()
 }

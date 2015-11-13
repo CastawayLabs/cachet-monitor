@@ -13,11 +13,10 @@ import (
 	"os"
 )
 
-// Static config
-var Config CachetConfig
 
 // Central logger
 var Logger *log.Logger
+var Config CachetConfig
 
 // CachetConfig is the monitoring tool configuration
 type CachetConfig struct {
@@ -29,7 +28,7 @@ type CachetConfig struct {
 	InsecureAPI bool       `json:"insecure_api"`
 }
 
-func init() {
+func LoadCachetConfigClassic() {
 	var configPath string
 	var systemName string
 	var logPath string
@@ -108,6 +107,25 @@ func init() {
 		}
 	}
 
+	flags := log.Llongfile | log.Ldate | log.Ltime
+	if len(os.Getenv("DEVELOPMENT")) > 0 {
+		flags = 0
+	}
+
+	Logger = log.New(logWriter, "", flags)
+}
+
+func LoadEmptyConfig() {
+	var logWriter io.Writer
+	logWriter = os.Stdout
+	Config = CachetConfig{}
+	if len(os.Getenv("CACHET_API")) > 0 {
+		Config.APIUrl = os.Getenv("CACHET_API")
+	}
+	if len(os.Getenv("CACHET_TOKEN")) > 0 {
+		Config.APIToken = os.Getenv("CACHET_TOKEN")
+	}
+	Config.SystemName = system.GetHostname()
 	flags := log.Llongfile | log.Ldate | log.Ltime
 	if len(os.Getenv("DEVELOPMENT")) > 0 {
 		flags = 0

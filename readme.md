@@ -66,8 +66,9 @@ How to run
 Example:
 
 1. Set up [Go](https://golang.org)
-2. `go install github.com/castawaylabs/cachet-monitor`
-3. `cachet-monitor -c https://raw.githubusercontent.com/CastawayLabs/cachet-monitor/master/example.config.json`
+2. `go get -d github.com/castawaylabs/cachet-monitor`
+3. `go install github.com/castawaylabs/cachet-monitor`
+4. `cachet-monitor -c https://raw.githubusercontent.com/CastawayLabs/cachet-monitor/master/example.config.json`
 
 Production:
 

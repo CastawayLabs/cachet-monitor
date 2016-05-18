@@ -71,3 +71,11 @@ Environment variables
 | CACHET_API   | http://demo.cachethq.io/api | URL endpoint for cachet api |
 | CACHET_TOKEN | randomvalue                 | API Authentication token    |
 | DEVELOPMENT  | 1                           | Strips logging              |
+
+Vision and goals
+----------------
+
+We made this tool because we felt the need to have our own monitoring software (leveraging on Cachet).
+The idea is a stateless program which collects data and pushes it to a central cachet instance.
+
+This gives us power to have an army of geographically distributed loggers and reveal issues in both latency & downtime on client websites.

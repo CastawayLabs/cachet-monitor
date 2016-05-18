@@ -14,33 +14,20 @@ Features
 - [x] Updates Component to Major Outage if in Partial Outage
 - [x] Can be run on multiple servers and geo regions
 
-Docker Quickstart
------------------
-
-1. Create a configuration json
-2. 
-```
-docker run -d \
-  --name cachet-monitor \
-  -h cachet-monitor \
-  -v `pwd`/config.json:/etc/cachet-monitor.config.json \
-  castawaylabs/cachet-monitor
-```
-
 Configuration
 -------------
 
 ```
 {
   "api_url": "https://demo.cachethq.io/api/v1",
-  "api_token": "9yMHsdioQosnyVK4iCVR",
+  "api_token": "<API TOKEN>",
   "interval": 60,
   "monitors": [
     {
-      "name": "nodegear frontend",
-      "url": "https://nodegear.io/ping",
-      "metric_id": 0,
-      "component_id": 0,
+      "name": "Name of your monitor",
+      "url": "Ping URL",
+      "metric_id": <metric id from cachet>,
+      "component_id": <component id from cachet>,
       "threshold": 80,
       "expected_status_code": 200,
       "strict_tls": true
@@ -60,20 +47,14 @@ Configuration
 - `expected_status_code` is a http response code
 - GET request will be performed on the `url`
 
-How to run
-----------
+Installation
+------------
 
-Example:
+1. Download binary from release page
+2. Create your configuration ([example](https://raw.githubusercontent.com/CastawayLabs/cachet-monitor/master/example.config.json))
+3. `cachet-monitor -c /etc/cachet-monitor.config.json`
 
-1. Set up [Go](https://golang.org)
-2. `go get -d github.com/castawaylabs/cachet-monitor`
-3. `go install github.com/castawaylabs/cachet-monitor`
-4. `cachet-monitor -c https://raw.githubusercontent.com/CastawayLabs/cachet-monitor/master/example.config.json`
-
-Production:
-
-1. Download the example config and save to `/etc/cachet-monitor.config.json`
-2. Run in background: `nohup cachet-monitor 2>&1 > /var/log/cachet-monitor.log &`
+tip: run in background using `nohup cachet-monitor 2>&1 > /var/log/cachet-monitor.log &`
 
 ```
 Usage of cachet-monitor:
@@ -89,3 +70,4 @@ Environment variables
 | ------------ | --------------------------- | --------------------------- |
 | CACHET_API   | http://demo.cachethq.io/api | URL endpoint for cachet api |
 | CACHET_TOKEN | randomvalue                 | API Authentication token    |
+| DEVELOPMENT  | 1                           | Strips logging              |

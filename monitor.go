@@ -115,8 +115,8 @@ func (monitor *Monitor) AnalyseData() {
 
 		component_id := json.Number(strconv.Itoa(*monitor.ComponentID))
 		monitor.Incident = &Incident{
-			Name: monitor.Incident.Name,
-			Message: monitor.Name + " check succeeded",
+			Name:        monitor.Incident.Name,
+			Message:     monitor.Name + " check succeeded",
 			ComponentID: &component_id,
 		}
 

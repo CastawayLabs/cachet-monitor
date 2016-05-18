@@ -2,16 +2,16 @@ package cachet
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
-
-	"github.com/castawaylabs/cachet-monitor/system"
 )
 
 // Static config
@@ -31,7 +31,7 @@ type CachetConfig struct {
 	InsecureAPI bool       `json:"insecure_api"`
 }
 
-func init() {
+func New() error {
 	var configPath string
 	var systemName string
 	var logPath string
@@ -48,8 +48,7 @@ func init() {
 		// download config
 		response, err := http.Get(configPath)
 		if err != nil {
-			fmt.Printf("Cannot download network config: %v\n", err)
-			os.Exit(1)
+			return errors.New("Cannot download network config: " + err.Error())
 		}
 
 		defer response.Body.Close()
@@ -59,16 +58,12 @@ func init() {
 	} else {
 		data, err = ioutil.ReadFile(configPath)
 		if err != nil {
-			fmt.Println("Config file '" + configPath + "' missing!")
-			os.Exit(1)
+			return errors.New("Config file '" + configPath + "' missing!")
 		}
 	}
 
-	err = json.Unmarshal(data, &Config)
-
-	if err != nil {
-		fmt.Println("Cannot parse config!")
-		os.Exit(1)
+	if err := json.Unmarshal(data, &Config); err != nil {
+		return errors.New("Cannot parse config!")
 	}
 
 	if len(systemName) > 0 {
@@ -76,7 +71,10 @@ func init() {
 	}
 	if len(Config.SystemName) == 0 {
 		// get hostname
-		Config.SystemName = system.GetHostname()
+		Config.SystemName = getHostname()
+	}
+	if Config.Interval <= 0 {
+		Config.Interval = 60
 	}
 
 	if len(os.Getenv("CACHET_API")) > 0 {
@@ -87,13 +85,11 @@ func init() {
 	}
 
 	if len(Config.APIToken) == 0 || len(Config.APIUrl) == 0 {
-		fmt.Printf("API URL or API Token not set. cachet-monitor won't be able to report incidents.\n\nPlease set:\n CACHET_API and CACHET_TOKEN environment variable to override settings.\n\nGet help at https://github.com/CastawayLabs/cachet-monitor\n")
-		os.Exit(1)
+		return errors.New("API URL or API Token not set. cachet-monitor won't be able to report incidents.\n\nPlease set:\n CACHET_API and CACHET_TOKEN environment variable to override settings.\n\nGet help at https://github.com/CastawayLabs/cachet-monitor\n")
 	}
 
 	if len(Config.Monitors) == 0 {
-		fmt.Printf("No monitors defined!\nSee sample configuration: https://github.com/CastawayLabs/cachet-monitor/blob/master/example.config.json\n")
-		os.Exit(1)
+		return errors.New("No monitors defined!\nSee sample configuration: https://github.com/CastawayLabs/cachet-monitor/blob/master/example.config.json\n")
 	}
 
 	if len(logPath) > 0 {
@@ -105,8 +101,7 @@ func init() {
 	if len(Config.LogPath) > 0 {
 		logWriter, err = os.Create(Config.LogPath)
 		if err != nil {
-			fmt.Printf("Unable to open file '%v' for logging\n", Config.LogPath)
-			os.Exit(1)
+			return errors.New("Unable to open file '" + Config.LogPath + "' for logging\n")
 		}
 	}
 
@@ -116,4 +111,24 @@ func init() {
 	}
 
 	Logger = log.New(logWriter, "", flags)
+
+	return nil
+}
+
+// getHostname returns id of the current system
+func getHostname() string {
+	hostname, err := os.Hostname()
+	if err != nil || len(hostname) == 0 {
+		addrs, err := net.InterfaceAddrs()
+
+		if err != nil {
+			return "unknown"
+		}
+
+		for _, addr := range addrs {
+			return addr.String()
+		}
+	}
+
+	return hostname
 }

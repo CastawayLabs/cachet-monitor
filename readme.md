@@ -4,6 +4,7 @@ Features
 --------
 
 - [x] Creates & Resolves Incidents
+- [x] Check URLs by response code and/or body contents
 - [x] Posts monitor lag to cachet graphs
 - [x] Updates Component to Partial Outage
 - [x] Updates Component to Major Outage if already in Partial Outage (works well with distributed monitoring)

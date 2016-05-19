@@ -1,118 +1,97 @@
 <!DOCTYPE html>
-<html lang="en-us">
+<html>
   <head>
-    <meta charset="UTF-8">
-    <title>Cachet-monitor by CastawayLabs</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
-    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
     <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Cachet-monitor by CastawayLabs</title>
   </head>
+
   <body>
-    <section class="page-header">
-      <h1 class="project-name">Cachet-monitor</h1>
-      <h2 class="project-tagline">Monitors a URL and posts data points to cachet</h2>
-      <a href="https://github.com/CastawayLabs/cachet-monitor" class="btn">View on GitHub</a>
-      <a href="https://github.com/CastawayLabs/cachet-monitor/zipball/master" class="btn">Download .zip</a>
-      <a href="https://github.com/CastawayLabs/cachet-monitor/tarball/master" class="btn">Download .tar.gz</a>
-    </section>
+    <header>
+      <div class="inner">
+        <h1>Cachet-monitor</h1>
+        <h2>Distributed monitoring plugin for CachetHQ</h2>
+        <a href="https://github.com/CastawayLabs/cachet-monitor" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
 
-    <section class="main-content">
-      <h1>
-<a id="cachet-monitor-plugin" class="anchor" href="#cachet-monitor-plugin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cachet Monitor plugin</h1>
-
-<p>This is a monitoring plugin for CachetHQ.</p>
-
-<p><img src="https://castawaylabs.github.io/cachet-monitor/screenshot.png" alt=""></p>
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <p><img src="https://castawaylabs.github.io/cachet-monitor/screenshot.png" alt="screenshot"></p>
 
 <h2>
-<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Features</h2>
 
 <ul>
 <li>[x] Creates &amp; Resolves Incidents</li>
-<li>[x] Posts monitor lag every second</li>
+<li>[x] Posts monitor lag to cachet graphs</li>
 <li>[x] Updates Component to Partial Outage</li>
-<li>[x] Updates Component to Major Outage if in Partial Outage</li>
+<li>[x] Updates Component to Major Outage if already in Partial Outage (works well with distributed monitoring)</li>
 <li>[x] Can be run on multiple servers and geo regions</li>
 </ul>
 
 <h2>
-<a id="docker-quickstart" class="anchor" href="#docker-quickstart" aria-hidden="true"><span class="octicon octicon-link"></span></a>Docker Quickstart</h2>
-
-<ol>
-<li>Create a configuration json</li>
-<li>
-</ol>
-
-<pre><code>docker run -d \
-  --name cachet-monitor \
-  -h cachet-monitor \
-  -v `pwd`/config.json:/etc/cachet-monitor.config.json \
-  castawaylabs/cachet-monitor
-</code></pre>
-
-<h2>
-<a id="configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+<a id="configuration" class="anchor" href="#configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Configuration</h2>
 
 <pre><code>{
-  "api_url": "https://demo.cachethq.io/api",
-  "api_token": "9yMHsdioQosnyVK4iCVR",
-  "monitors": [
-    {
-      "name": "nodegear frontend",
-      "url": "https://nodegear.io/ping",
-      "metric_id": 0,
-      "component_id": 0,
-      "threshold": 80,
-      "component_id": null,
-      "expected_status_code": 200,
-      "strict_tls": true
-    }
-  ],
-  "insecure_api": false
+  // URL for the API. Note: Must end with /api/v1
+  "api_url": "https://&lt;cachet domain&gt;/api/v1",
+  // Your API token for Cachet
+  "api_token": "&lt;cachet api token&gt;",
+  // optional, false default, set if your certificate is self-signed/untrusted
+  "insecure_api": false,
+  "monitors": [{
+    // required, friendly name for your monitor
+    "name": "Name of your monitor",
+    // required, url to probe
+    "url": "Ping URL",
+    // optional, http method (defaults GET)
+    "method": "get",
+    // self-signed ssl certificate
+    "strict_tls": true,
+    // seconds between checks
+    "interval": 10,
+    // post lag to cachet metric (graph)
+    // note either metric ID or component ID are required
+    "metric_id": &lt;metric id&gt;,
+    // post incidents to this component
+    "component_id": &lt;component id&gt;,
+    // If % of downtime is over this threshold, open an incident
+    "threshold": 80,
+    // optional, expected status code (either status code or body must be supplied)
+    "expected_status_code": 200,
+    // optional, regular expression to match body content
+    "expected_body": "P.*NG"
+  }],
+  // optional, system name to identify bot (uses hostname by default)
+  "system_name": "",
+  // optional, defaults to stdout
+  "log_path": ""
 }
 </code></pre>
 
-<p><em>Notes:</em></p>
-
-<ul>
-<li>
-<code>metric_id</code> is optional</li>
-<li>
-<code>insecure_api</code> if true it will ignore HTTPS certificate errors (eg if self-signed)</li>
-<li>
-<code>strict_tls</code> if false (true is default) it will ignore HTTPS certificate errors (eg if monitor uses self-signed certificate)</li>
-<li>
-<code>component_id</code> is optional</li>
-<li>
-<code>threshold</code> is a percentage</li>
-<li>
-<code>expected_status_code</code> is a http response code</li>
-<li>GET request will be performed on the <code>url</code>
-</li>
-</ul>
-
 <h2>
-<a id="how-to-run" class="anchor" href="#how-to-run" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to run</h2>
-
-<p>Example:</p>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h2>
 
 <ol>
-<li>Set up <a href="https://golang.org">Go</a>
+<li>Download binary from <a href="https://github.com/CastawayLabs/cachet-monitor/releases">release page</a>
 </li>
-<li><code>go install github.com/castawaylabs/cachet-monitor</code></li>
-<li><code>cachet-monitor -c https://raw.githubusercontent.com/CastawayLabs/cachet-monitor/master/example.config.json</code></li>
+<li>Create your configuration (<a href="https://raw.githubusercontent.com/CastawayLabs/cachet-monitor/master/example.config.json">example</a>)</li>
+<li><code>cachet-monitor -c /etc/cachet-monitor.config.json</code></li>
 </ol>
 
-<p>Production:</p>
-
-<ol>
-<li>Download the example config and save to <code>/etc/cachet-monitor.config.json</code>
-</li>
-<li>Run in background: <code>nohup cachet-monitor 2&gt;&amp;1 &gt; /var/log/cachet-monitor.log &amp;</code>
-</li>
-</ol>
+<p>pro tip: run in background using <code>nohup cachet-monitor 2&gt;&amp;1 &gt; /var/log/cachet-monitor.log &amp;</code></p>
 
 <pre><code>Usage of cachet-monitor:
   -c="/etc/cachet-monitor.config.json": Config path
@@ -121,7 +100,7 @@
 </code></pre>
 
 <h2>
-<a id="environment-variables" class="anchor" href="#environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Environment variables</h2>
+<a id="environment-variables" class="anchor" href="#environment-variables" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Environment variables</h2>
 
 <table>
 <thead>
@@ -134,26 +113,55 @@
 <tbody>
 <tr>
 <td>CACHET_API</td>
-<td><a href="http://demo.cachethq.io/api">http://demo.cachethq.io/api</a></td>
+<td><a href="http://demo.cachethq.io/api/v1">http://demo.cachethq.io/api/v1</a></td>
 <td>URL endpoint for cachet api</td>
 </tr>
 <tr>
 <td>CACHET_TOKEN</td>
-<td>randomvalue</td>
+<td>APIToken123</td>
 <td>API Authentication token</td>
+</tr>
+<tr>
+<td>CACHET_DEV</td>
+<td>1</td>
+<td>Strips logging</td>
 </tr>
 </tbody>
 </table>
 
-      <footer class="site-footer">
-        <span class="site-footer-owner"><a href="https://github.com/CastawayLabs/cachet-monitor">Cachet-monitor</a> is maintained by <a href="https://github.com/CastawayLabs">CastawayLabs</a>.</span>
+<h2>
+<a id="vision-and-goals" class="anchor" href="#vision-and-goals" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Vision and goals</h2>
 
-        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
-      </footer>
+<p>We made this tool because we felt the need to have our own monitoring software (leveraging on Cachet).
+The idea is a stateless program which collects data and pushes it to a central cachet instance.</p>
 
-    </section>
+<p>This gives us power to have an army of geographically distributed loggers and reveal issues in both latency &amp; downtime on client websites.</p>
+
+<h2>
+<a id="package-usage" class="anchor" href="#package-usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Package usage</h2>
+
+<p>When using <code>cachet-monitor</code> as a package in another program, you should follow what <code>cli/main.go</code> does. It is important to call <code>ValidateConfiguration</code> on <code>CachetMonitor</code> and all the monitors inside.</p>
+
+<p><a href="https://godoc.org/github.com/CastawayLabs/cachet-monitor">API Documentation</a></p>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/CastawayLabs/cachet-monitor/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/CastawayLabs/cachet-monitor/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/CastawayLabs/cachet-monitor"></a> is maintained by <a href="https://github.com/CastawayLabs">CastawayLabs</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
 
   
   </body>
 </html>
-

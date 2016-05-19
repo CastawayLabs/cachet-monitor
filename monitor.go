@@ -23,6 +23,28 @@ type Monitor struct {
 	History        []bool    `json:"-"`
 	LastFailReason *string   `json:"-"`
 	Incident       *Incident `json:"-"`
+	config         *CachetMonitor
+}
+
+func (cfg *CachetMonitor) Run() {
+	cfg.Logger.Printf("System: %s\nInterval: %d second(s)\nAPI: %s\n\n", cfg.SystemName, cfg.Interval, cfg.APIUrl)
+	cfg.Logger.Printf("Starting %d monitors:\n", len(cfg.Monitors))
+	for _, mon := range cfg.Monitors {
+		cfg.Logger.Printf(" %s: GET %s & Expect HTTP %d\n", mon.Name, mon.URL, mon.ExpectedStatusCode)
+		if mon.MetricID > 0 {
+			cfg.Logger.Printf(" - Logs lag to metric id: %d\n", mon.MetricID)
+		}
+	}
+
+	cfg.Logger.Println()
+
+	ticker := time.NewTicker(time.Duration(cfg.Interval) * time.Second)
+	for range ticker.C {
+		for _, mon := range cfg.Monitors {
+			mon.config = cfg
+			go mon.Run()
+		}
+	}
 }
 
 // Run loop
@@ -38,7 +60,7 @@ func (monitor *Monitor) Run() {
 	monitor.AnalyseData()
 
 	if isUp == true && monitor.MetricID > 0 {
-		SendMetric(monitor.MetricID, lag)
+		monitor.config.SendMetric(monitor.MetricID, lag)
 	}
 }
 
@@ -81,7 +103,7 @@ func (monitor *Monitor) AnalyseData() {
 	}
 
 	t := (float32(numDown) / float32(len(monitor.History))) * 100
-	Logger.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.URL, t, time.Now().UnixNano()/int64(time.Second), monitor.Threshold)
+	monitor.config.Logger.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.URL, t, time.Now().UnixNano()/int64(time.Second), monitor.Threshold)
 
 	if len(monitor.History) != 10 {
 		// not enough data
@@ -90,11 +112,11 @@ func (monitor *Monitor) AnalyseData() {
 
 	if t > monitor.Threshold && monitor.Incident == nil {
 		// is down, create an incident
-		Logger.Println("Creating incident...")
+		monitor.config.Logger.Println("Creating incident...")
 
 		component_id := json.Number(strconv.Itoa(*monitor.ComponentID))
 		monitor.Incident = &Incident{
-			Name:        monitor.Name + " - " + Config.SystemName,
+			Name:        monitor.Name + " - " + monitor.config.SystemName,
 			Message:     monitor.Name + " check failed",
 			ComponentID: &component_id,
 		}
@@ -107,11 +129,11 @@ func (monitor *Monitor) AnalyseData() {
 		monitor.Incident.SetInvestigating()
 
 		// create/update incident
-		monitor.Incident.Send()
-		monitor.Incident.UpdateComponent()
+		monitor.config.SendIncident(monitor.Incident)
+		monitor.config.UpdateComponent(monitor.Incident)
 	} else if t < monitor.Threshold && monitor.Incident != nil {
 		// was down, created an incident, its now ok, make it resolved.
-		Logger.Println("Updating incident to resolved...")
+		monitor.config.Logger.Println("Updating incident to resolved...")
 
 		component_id := json.Number(strconv.Itoa(*monitor.ComponentID))
 		monitor.Incident = &Incident{
@@ -121,8 +143,8 @@ func (monitor *Monitor) AnalyseData() {
 		}
 
 		monitor.Incident.SetFixed()
-		monitor.Incident.Send()
-		monitor.Incident.UpdateComponent()
+		monitor.config.SendIncident(monitor.Incident)
+		monitor.config.UpdateComponent(monitor.Incident)
 
 		monitor.Incident = nil
 	}

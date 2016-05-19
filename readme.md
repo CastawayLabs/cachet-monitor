@@ -70,7 +70,7 @@ Environment variables
 | ------------ | --------------------------- | --------------------------- |
 | CACHET_API   | http://demo.cachethq.io/api | URL endpoint for cachet api |
 | CACHET_TOKEN | randomvalue                 | API Authentication token    |
-| DEVELOPMENT  | 1                           | Strips logging              |
+| CACHET_DEV   | 1                           | Strips logging              |
 
 Vision and goals
 ----------------

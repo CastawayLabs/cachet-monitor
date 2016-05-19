@@ -2,6 +2,8 @@ package cachet
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strconv"
 )
 
@@ -18,36 +20,26 @@ type Incident struct {
 	UpdatedAt   *string      `json:"updated_at"`
 }
 
-// IncidentData is a response when creating/updating an incident
-type IncidentData struct {
-	Incident Incident `json:"data"`
-}
-
-// IncidentList - from API /incidents
-type IncidentList struct {
-	Incidents []Incident `json:"data"`
-}
-
 // GetIncidents - Get list of incidents
-func GetIncidents() []Incident {
-	_, body, err := makeRequest("GET", "/incidents", nil)
+func (monitor *CachetMonitor) GetIncidents() ([]Incident, error) {
+	_, body, err := monitor.makeRequest("GET", "/incidents", nil)
 	if err != nil {
-		Logger.Printf("Cannot get incidents: %v\n", err)
-		return []Incident{}
+		return []Incident{}, fmt.Errorf("Cannot get incidents: %v\n", err)
 	}
 
-	var data IncidentList
+	var data struct {
+		Incidents []Incident `json:"data"`
+	}
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		Logger.Printf("Cannot parse incidents: %v\n", err)
-		panic(err)
+		return []Incident{}, fmt.Errorf("Cannot parse incidents: %v\n", err)
 	}
 
-	return data.Incidents
+	return data.Incidents, nil
 }
 
 // Send - Create or Update incident
-func (incident *Incident) Send() {
+func (monitor *CachetMonitor) SendIncident(incident *Incident) error {
 	jsonBytes, _ := json.Marshal(map[string]interface{}{
 		"name":         incident.Name,
 		"message":      incident.Message,
@@ -63,58 +55,57 @@ func (incident *Incident) Send() {
 		requestURL += "/" + string(incident.ID)
 	}
 
-	resp, body, err := makeRequest(requestType, requestURL, jsonBytes)
+	resp, body, err := monitor.makeRequest(requestType, requestURL, jsonBytes)
 	if err != nil {
-		Logger.Printf("Cannot create/update incident: %v\n", err)
-		return
+		return err
 	}
 
-	Logger.Println(strconv.Itoa(resp.StatusCode) + " " + string(body))
-
-	var data IncidentData
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		Logger.Println("Cannot parse incident body.", string(body))
-		panic(err)
+	var data struct {
+		Incident Incident `json:"data"`
+	}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return errors.New("Cannot parse incident body." + string(body))
 	} else {
 		incident.ID = data.Incident.ID
 		incident.Component = data.Incident.Component
 	}
 
 	if resp.StatusCode != 200 {
-		Logger.Println("Could not create/update incident!")
+		return errors.New("Could not create/update incident!")
 	}
-}
-
-func (incident *Incident) fetchComponent() error {
-	_, body, err := makeRequest("GET", "/components/"+string(*incident.ComponentID), nil)
-	if err != nil {
-		return err
-	}
-
-	var data ComponentData
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		Logger.Println("Cannot parse component body. %v", string(body))
-		panic(err)
-	}
-
-	incident.Component = &data.Component
 
 	return nil
 }
 
-func (incident *Incident) UpdateComponent() {
+func (monitor *CachetMonitor) fetchComponent(componentID string) (*Component, error) {
+	_, body, err := monitor.makeRequest("GET", "/components/"+componentID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var data struct {
+		Component Component `json:"data"`
+	}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, errors.New("Cannot parse component body. " + string(body))
+	}
+
+	return &data.Component, nil
+}
+
+func (monitor *CachetMonitor) UpdateComponent(incident *Incident) error {
 	if incident.ComponentID == nil || len(*incident.ComponentID) == 0 {
-		return
+		return nil
 	}
 
 	if incident.Component == nil {
 		// fetch component
-		if err := incident.fetchComponent(); err != nil {
-			Logger.Printf("Cannot fetch component for incident. %v\n", err)
-			return
+		component, err := monitor.fetchComponent(string(*incident.ComponentID))
+		if err != nil {
+			return fmt.Errorf("Cannot fetch component for incident. %v\n", err)
 		}
+
+		incident.Component = component
 	}
 
 	status, _ := strconv.Atoi(string(incident.Status))
@@ -133,11 +124,12 @@ func (incident *Incident) UpdateComponent() {
 		"status": incident.Component.Status,
 	})
 
-	resp, _, err := makeRequest("PUT", "/components/"+string(incident.Component.ID), jsonBytes)
+	resp, _, err := monitor.makeRequest("PUT", "/components/"+string(incident.Component.ID), jsonBytes)
 	if err != nil || resp.StatusCode != 200 {
-		Logger.Printf("Could not update component: (resp code %d) %v", resp.StatusCode, err)
-		return
+		return fmt.Errorf("Could not update component: (resp code %d) %v", resp.StatusCode, err)
 	}
+
+	return nil
 }
 
 // SetInvestigating sets status to Investigating

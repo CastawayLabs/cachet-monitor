@@ -3,8 +3,12 @@ package cachet
 import (
 	"crypto/tls"
 	"encoding/json"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -12,18 +16,22 @@ const timeout = time.Duration(time.Second)
 
 // Monitor data model
 type Monitor struct {
-	Name               string  `json:"name"`
-	URL                string  `json:"url"`
-	MetricID           int     `json:"metric_id"`
-	Threshold          float32 `json:"threshold"`
-	ComponentID        *int    `json:"component_id"`
-	ExpectedStatusCode int     `json:"expected_status_code"`
-	StrictTLS          *bool   `json:"strict_tls"`
+	Name               string        `json:"name"`
+	URL                string        `json:"url"`
+	MetricID           int           `json:"metric_id"`
+	Threshold          float32       `json:"threshold"`
+	ComponentID        *int          `json:"component_id"`
+	ExpectedStatusCode int           `json:"expected_status_code"`
+	StrictTLS          *bool         `json:"strict_tls"`
+	Interval           time.Duration `json:"interval"`
 
 	History        []bool    `json:"-"`
 	LastFailReason *string   `json:"-"`
 	Incident       *Incident `json:"-"`
 	config         *CachetMonitor
+
+	// Closed when mon.Stop() is called
+	stopC chan bool
 }
 
 func (cfg *CachetMonitor) Run() {
@@ -34,17 +42,47 @@ func (cfg *CachetMonitor) Run() {
 		if mon.MetricID > 0 {
 			cfg.Logger.Printf(" - Logs lag to metric id: %d\n", mon.MetricID)
 		}
+		if mon.ComponentID != nil && *mon.ComponentID > 0 {
+			cfg.Logger.Printf(" - Updates component id: %d\n", *mon.ComponentID)
+		}
 	}
 
 	cfg.Logger.Println()
+	wg := &sync.WaitGroup{}
 
-	ticker := time.NewTicker(time.Duration(cfg.Interval) * time.Second)
-	for range ticker.C {
-		for _, mon := range cfg.Monitors {
-			mon.config = cfg
-			go mon.Run()
-		}
+	for _, mon := range cfg.Monitors {
+		wg.Add(1)
+		mon.config = cfg
+		mon.stopC = make(chan bool)
+
+		go func(mon *Monitor) {
+			if mon.Interval < 1 {
+				mon.Interval = time.Duration(cfg.Interval)
+			}
+
+			ticker := time.NewTicker(mon.Interval * time.Second)
+			for {
+				select {
+				case <-ticker.C:
+					mon.Run()
+				case <-mon.StopC():
+					wg.Done()
+					return
+				}
+			}
+		}(mon)
 	}
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, os.Kill)
+	<-signals
+
+	log.Println("Waiting monitors to end current operation")
+	for _, mon := range cfg.Monitors {
+		mon.Stop()
+	}
+
+	wg.Wait()
 }
 
 // Run loop
@@ -61,6 +99,27 @@ func (monitor *Monitor) Run() {
 
 	if isUp == true && monitor.MetricID > 0 {
 		monitor.config.SendMetric(monitor.MetricID, lag)
+	}
+}
+
+func (monitor *Monitor) Stop() {
+	if monitor.Stopped() {
+		return
+	}
+
+	close(monitor.stopC)
+}
+
+func (monitor *Monitor) StopC() <-chan bool {
+	return monitor.stopC
+}
+
+func (monitor *Monitor) Stopped() bool {
+	select {
+	case <-monitor.stopC:
+		return true
+	default:
+		return false
 	}
 }
 

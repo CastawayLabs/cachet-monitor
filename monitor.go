@@ -2,103 +2,81 @@ package cachet
 
 import (
 	"crypto/tls"
-	"encoding/json"
-	"log"
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
-	"os"
-	"os/signal"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
 
-const timeout = time.Duration(time.Second)
+const HttpTimeout = time.Duration(time.Second)
+const DefaultInterval = 60
+const DefaultTimeFormat = "15:04:05 Jan 2 MST"
 
 // Monitor data model
 type Monitor struct {
-	Name               string        `json:"name"`
-	URL                string        `json:"url"`
-	MetricID           int           `json:"metric_id"`
-	Threshold          float32       `json:"threshold"`
-	ComponentID        *int          `json:"component_id"`
-	ExpectedStatusCode int           `json:"expected_status_code"`
-	StrictTLS          *bool         `json:"strict_tls"`
-	Interval           time.Duration `json:"interval"`
+	Name          string        `json:"name"`
+	URL           string        `json:"url"`
+	Method        string        `json:"method"`
+	StrictTLS     bool          `json:"strict_tls"`
+	CheckInterval time.Duration `json:"interval"`
 
-	History        []bool    `json:"-"`
-	LastFailReason *string   `json:"-"`
-	Incident       *Incident `json:"-"`
+	MetricID    int `json:"metric_id"`
+	ComponentID int `json:"component_id"`
+
+	// Threshold = percentage
+	Threshold float32 `json:"threshold"`
+	// Saturat
+	ExpectedStatusCode int `json:"expected_status_code"`
+	// compiled to Regexp
+	ExpectedBody string `json:"expected_body"`
+	bodyRegexp   *regexp.Regexp
+
+	history        []bool
+	lastFailReason string
+	incident       *Incident
 	config         *CachetMonitor
 
 	// Closed when mon.Stop() is called
 	stopC chan bool
 }
 
-func (cfg *CachetMonitor) Run() {
-	cfg.Logger.Printf("System: %s\nInterval: %d second(s)\nAPI: %s\n\n", cfg.SystemName, cfg.Interval, cfg.APIUrl)
-	cfg.Logger.Printf("Starting %d monitors:\n", len(cfg.Monitors))
-	for _, mon := range cfg.Monitors {
-		cfg.Logger.Printf(" %s: GET %s & Expect HTTP %d\n", mon.Name, mon.URL, mon.ExpectedStatusCode)
-		if mon.MetricID > 0 {
-			cfg.Logger.Printf(" - Logs lag to metric id: %d\n", mon.MetricID)
+func (mon *Monitor) Start(cfg *CachetMonitor, wg *sync.WaitGroup) {
+	wg.Add(1)
+	mon.config = cfg
+	mon.stopC = make(chan bool)
+
+	mon.config.Logger.Printf(" Starting %s: %d seconds check interval\n - %v %s", mon.Name, mon.CheckInterval, mon.Method, mon.URL)
+
+	// print features
+	if mon.ExpectedStatusCode > 0 {
+		mon.config.Logger.Printf(" - Expect HTTP %d", mon.ExpectedStatusCode)
+	}
+	if len(mon.ExpectedBody) > 0 {
+		mon.config.Logger.Printf(" - Expect Body to match \"%v\"", mon.ExpectedBody)
+	}
+	if mon.MetricID > 0 {
+		mon.config.Logger.Printf(" - Log lag to metric id %d\n", mon.MetricID)
+	}
+	if mon.ComponentID > 0 {
+		mon.config.Logger.Printf(" - Update component id %d\n\n", mon.ComponentID)
+	}
+
+	mon.Tick()
+
+	ticker := time.NewTicker(mon.CheckInterval * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			mon.Tick()
+		case <-mon.stopC:
+			wg.Done()
+			return
 		}
-		if mon.ComponentID != nil && *mon.ComponentID > 0 {
-			cfg.Logger.Printf(" - Updates component id: %d\n", *mon.ComponentID)
-		}
-	}
-
-	cfg.Logger.Println()
-	wg := &sync.WaitGroup{}
-
-	for _, mon := range cfg.Monitors {
-		wg.Add(1)
-		mon.config = cfg
-		mon.stopC = make(chan bool)
-
-		go func(mon *Monitor) {
-			if mon.Interval < 1 {
-				mon.Interval = time.Duration(cfg.Interval)
-			}
-
-			ticker := time.NewTicker(mon.Interval * time.Second)
-			for {
-				select {
-				case <-ticker.C:
-					mon.Run()
-				case <-mon.StopC():
-					wg.Done()
-					return
-				}
-			}
-		}(mon)
-	}
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, os.Kill)
-	<-signals
-
-	log.Println("Waiting monitors to end current operation")
-	for _, mon := range cfg.Monitors {
-		mon.Stop()
-	}
-
-	wg.Wait()
-}
-
-// Run loop
-func (monitor *Monitor) Run() {
-	reqStart := getMs()
-	isUp := monitor.doRequest()
-	lag := getMs() - reqStart
-
-	if len(monitor.History) >= 10 {
-		monitor.History = monitor.History[len(monitor.History)-9:]
-	}
-	monitor.History = append(monitor.History, isUp)
-	monitor.AnalyseData()
-
-	if isUp == true && monitor.MetricID > 0 {
-		monitor.config.SendMetric(monitor.MetricID, lag)
 	}
 }
 
@@ -110,10 +88,6 @@ func (monitor *Monitor) Stop() {
 	close(monitor.stopC)
 }
 
-func (monitor *Monitor) StopC() <-chan bool {
-	return monitor.stopC
-}
-
 func (monitor *Monitor) Stopped() bool {
 	select {
 	case <-monitor.stopC:
@@ -123,11 +97,30 @@ func (monitor *Monitor) Stopped() bool {
 	}
 }
 
+func (monitor *Monitor) Tick() {
+	reqStart := getMs()
+	isUp := monitor.doRequest()
+	lag := getMs() - reqStart
+
+	if len(monitor.history) == 9 {
+		monitor.config.Logger.Printf("%v is now saturated\n", monitor.Name)
+	}
+	if len(monitor.history) >= 10 {
+		monitor.history = monitor.history[len(monitor.history)-9:]
+	}
+	monitor.history = append(monitor.history, isUp)
+	monitor.AnalyseData()
+
+	if isUp == true && monitor.MetricID > 0 {
+		monitor.config.SendMetric(monitor.MetricID, lag)
+	}
+}
+
 func (monitor *Monitor) doRequest() bool {
 	client := &http.Client{
-		Timeout: timeout,
+		Timeout: HttpTimeout,
 	}
-	if monitor.StrictTLS != nil && *monitor.StrictTLS == false {
+	if monitor.StrictTLS == false {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
@@ -135,17 +128,34 @@ func (monitor *Monitor) doRequest() bool {
 
 	resp, err := client.Get(monitor.URL)
 	if err != nil {
-		errString := err.Error()
-		monitor.LastFailReason = &errString
+		monitor.lastFailReason = err.Error()
+
 		return false
 	}
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != monitor.ExpectedStatusCode {
-		failReason := "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
-		monitor.LastFailReason = &failReason
+	if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
+		monitor.lastFailReason = "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
+
 		return false
+	}
+
+	if monitor.bodyRegexp != nil {
+		// check body
+		responseBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			monitor.lastFailReason = err.Error()
+
+			return false
+		}
+
+		match := monitor.bodyRegexp.Match(responseBody)
+		if !match {
+			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ". Expected to match " + monitor.ExpectedBody
+		}
+
+		return match
 	}
 
 	return true
@@ -155,60 +165,89 @@ func (monitor *Monitor) doRequest() bool {
 func (monitor *Monitor) AnalyseData() {
 	// look at the past few incidents
 	numDown := 0
-	for _, wasUp := range monitor.History {
+	for _, wasUp := range monitor.history {
 		if wasUp == false {
 			numDown++
 		}
 	}
 
-	t := (float32(numDown) / float32(len(monitor.History))) * 100
-	monitor.config.Logger.Printf("%s %.2f%% Down at %v. Threshold: %.2f%%\n", monitor.URL, t, time.Now().UnixNano()/int64(time.Second), monitor.Threshold)
+	t := (float32(numDown) / float32(len(monitor.history))) * 100
+	monitor.config.Logger.Printf("%s %.2f%%/%.2f%% down at %v\n", monitor.Name, t, monitor.Threshold, time.Now().UnixNano()/int64(time.Second))
 
-	if len(monitor.History) != 10 {
-		// not enough data
+	if len(monitor.history) != 10 {
+		// not saturated
 		return
 	}
 
-	if t > monitor.Threshold && monitor.Incident == nil {
-		// is down, create an incident
-		monitor.config.Logger.Println("Creating incident...")
-
-		component_id := json.Number(strconv.Itoa(*monitor.ComponentID))
-		monitor.Incident = &Incident{
+	if t > monitor.Threshold && monitor.incident == nil {
+		monitor.incident = &Incident{
 			Name:        monitor.Name + " - " + monitor.config.SystemName,
-			Message:     monitor.Name + " check failed",
-			ComponentID: &component_id,
+			ComponentID: monitor.ComponentID,
+			Message:     monitor.Name + " check **failed** - " + time.Now().Format(DefaultTimeFormat),
+			Notify:      true,
 		}
 
-		if monitor.LastFailReason != nil {
-			monitor.Incident.Message += "\n\n - " + *monitor.LastFailReason
+		if len(monitor.lastFailReason) > 0 {
+			monitor.incident.Message += "\n\n `" + monitor.lastFailReason + "`"
 		}
 
+		// is down, create an incident
+		monitor.config.Logger.Printf("%v creating incident. Monitor is down: %v", monitor.Name, monitor.lastFailReason)
 		// set investigating status
-		monitor.Incident.SetInvestigating()
-
+		monitor.incident.SetInvestigating()
 		// create/update incident
-		monitor.config.SendIncident(monitor.Incident)
-		monitor.config.UpdateComponent(monitor.Incident)
-	} else if t < monitor.Threshold && monitor.Incident != nil {
-		// was down, created an incident, its now ok, make it resolved.
-		monitor.config.Logger.Println("Updating incident to resolved...")
-
-		component_id := json.Number(strconv.Itoa(*monitor.ComponentID))
-		monitor.Incident = &Incident{
-			Name:        monitor.Incident.Name,
-			Message:     monitor.Name + " check succeeded",
-			ComponentID: &component_id,
+		if err := monitor.incident.Send(monitor.config); err != nil {
+			monitor.config.Logger.Printf("Error sending incident: %v\n", err)
 		}
+	} else if t < monitor.Threshold && monitor.incident != nil {
+		// was down, created an incident, its now ok, make it resolved.
+		monitor.config.Logger.Printf("%v resolved downtime incident", monitor.Name)
 
-		monitor.Incident.SetFixed()
-		monitor.config.SendIncident(monitor.Incident)
-		monitor.config.UpdateComponent(monitor.Incident)
+		// resolve incident
+		monitor.incident.Message = "\n**Resolved** - " + time.Now().Format(DefaultTimeFormat) + "\n\n - - - \n\n" + monitor.incident.Message
+		monitor.incident.SetFixed()
+		monitor.incident.Send(monitor.config)
 
-		monitor.Incident = nil
+		monitor.lastFailReason = ""
+		monitor.incident = nil
 	}
 }
 
-func getMs() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
+func (monitor *Monitor) ValidateConfiguration() error {
+	if len(monitor.ExpectedBody) > 0 {
+		exp, err := regexp.Compile(monitor.ExpectedBody)
+		if err != nil {
+			return err
+		}
+
+		monitor.bodyRegexp = exp
+	}
+
+	if len(monitor.ExpectedBody) == 0 && monitor.ExpectedStatusCode == 0 {
+		return errors.New("Nothing to check, both 'expected_body' and 'expected_status_code' fields empty")
+	}
+
+	if monitor.CheckInterval < 1 {
+		monitor.CheckInterval = DefaultInterval
+	}
+
+	monitor.Method = strings.ToUpper(monitor.Method)
+	switch monitor.Method {
+	case "GET", "POST", "DELETE", "OPTIONS", "HEAD":
+		break
+	case "":
+		monitor.Method = "GET"
+	default:
+		return fmt.Errorf("Unsupported check method: %v", monitor.Method)
+	}
+
+	if monitor.ComponentID == 0 && monitor.MetricID == 0 {
+		return errors.New("component_id & metric_id are unset")
+	}
+
+	if monitor.Threshold <= 0 {
+		monitor.Threshold = 100
+	}
+
+	return nil
 }

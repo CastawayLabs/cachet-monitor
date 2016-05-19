@@ -4,9 +4,9 @@ Features
 --------
 
 - [x] Creates & Resolves Incidents
-- [x] Posts monitor lag (interval configurable)
+- [x] Posts monitor lag to cachet graphs
 - [x] Updates Component to Partial Outage
-- [x] Updates Component to Major Outage if in Partial Outage
+- [x] Updates Component to Major Outage if already in Partial Outage (works well with distributed monitoring)
 - [x] Can be run on multiple servers and geo regions
 
 Configuration
@@ -14,35 +14,25 @@ Configuration
 
 ```
 {
-  "api_url": "https://demo.cachethq.io/api/v1",
-  "api_token": "<API TOKEN>",
-  "interval": 60,
-  "monitors": [
-    {
-      "name": "Name of your monitor",
-      "url": "Ping URL",
-      "metric_id": <metric id from cachet>,
-      "component_id": <component id from cachet>,
-      "threshold": 80,
-      "expected_status_code": 200,
-      "strict_tls": true,
-      "interval": 5
-    }
-  ],
-  "insecure_api": false
+  "api_url": "https://<cachet domain>/api/v1",
+  "api_token": "<cachet api token>",
+  "insecure_api": false, // optional, false default, set if your certificate is self-signed/untrusted
+  "monitors": [{
+    "name": "Name of your monitor", // required, friendly name for your monitor
+    "url": "Ping URL", // required, url to probe
+    "method": "get", // optional, http method (defaults GET)
+    "strict_tls": true, // self-signed ssl certificate
+    "interval": 10, // seconds between checks
+    "metric_id": <metric id>, // post lag to cachet metric (graph)
+    "component_id": <component id>, // post incidents to this component
+    "threshold": 80, // If % of downtime is over this threshold, open an incident
+    "expected_status_code": 200, // optional, expected status code (either status code or body must be supplied)
+    "expected_body": "P.*NG" // optional, regular expression
+  }],
+  "system_name": "", // optional, system name to identify bot
+  "log_path": "" // optional, defaults to stdout
 }
 ```
-
-*Notes:*
-
-- `metric_id` is optional
-- `insecure_api` if true it will ignore HTTPS certificate errors (eg if self-signed)
-- `strict_tls` if false (true is default) it will ignore HTTPS certificate errors (eg if monitor uses self-signed certificate)
-- `component_id` is optional
-- `threshold` is a percentage
-- `expected_status_code` is a http response code
-- `interval` is the duration in seconds between two checks.
-- GET request will be performed on the `url`
 
 Installation
 ------------
@@ -63,11 +53,11 @@ Usage of cachet-monitor:
 Environment variables
 ---------------------
 
-| Name         | Example Value               | Description                 |
-| ------------ | --------------------------- | --------------------------- |
-| CACHET_API   | http://demo.cachethq.io/api | URL endpoint for cachet api |
-| CACHET_TOKEN | randomvalue                 | API Authentication token    |
-| CACHET_DEV   | 1                           | Strips logging              |
+| Name         | Example Value                  | Description                 |
+| ------------ | ------------------------------ | --------------------------- |
+| CACHET_API   | http://demo.cachethq.io/api/v1 | URL endpoint for cachet api |
+| CACHET_TOKEN | APIToken123                    | API Authentication token    |
+| CACHET_DEV   | 1                              | Strips logging              |
 
 Vision and goals
 ----------------

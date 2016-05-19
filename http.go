@@ -4,21 +4,12 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"time"
 )
-
-// Component Cachet model
-type Component struct {
-	ID            json.Number `json:"id"`
-	Name          string      `json:"name"`
-	Description   string      `json:"description"`
-	Status        json.Number `json:"status_id"`
-	HumanStatus   string      `json:"-"`
-	IncidentCount int         `json:"-"`
-	CreatedAt     *string     `json:"created_at"`
-	UpdatedAt     *string     `json:"updated_at"`
-}
 
 func (monitor *CachetMonitor) makeRequest(requestType string, url string, reqBody []byte) (*http.Response, []byte, error) {
 	req, err := http.NewRequest(requestType, monitor.APIUrl+url, bytes.NewBuffer(reqBody))
@@ -42,4 +33,26 @@ func (monitor *CachetMonitor) makeRequest(requestType string, url string, reqBod
 	body, _ := ioutil.ReadAll(res.Body)
 
 	return res, body, nil
+}
+
+// SendMetric sends lag metric point
+func (monitor *CachetMonitor) SendMetric(metricID int, delay int64) error {
+	if metricID <= 0 {
+		return nil
+	}
+
+	jsonBytes, _ := json.Marshal(&map[string]interface{}{
+		"value": delay,
+	})
+
+	resp, _, err := monitor.makeRequest("POST", "/metrics/"+strconv.Itoa(metricID)+"/points", jsonBytes)
+	if err != nil || resp.StatusCode != 200 {
+		return fmt.Errorf("Could not log data point!\n%v\n", err)
+	}
+
+	return nil
+}
+
+func getMs() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
 }

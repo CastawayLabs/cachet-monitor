@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
+	"sync"
 
 	cachet "github.com/castawaylabs/cachet-monitor"
 )
@@ -47,7 +49,23 @@ func main() {
 		panic(err)
 	}
 
-	cfg.Run()
+	cfg.Logger.Printf("System: %s\nAPI: %s\nMonitors: %d\n\n", cfg.SystemName, cfg.APIUrl, len(cfg.Monitors))
+
+	wg := &sync.WaitGroup{}
+	for _, mon := range cfg.Monitors {
+		go mon.Start(cfg, wg)
+	}
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, os.Kill)
+	<-signals
+
+	cfg.Logger.Println("Abort: Waiting monitors to finish")
+	for _, mon := range cfg.Monitors {
+		mon.Stop()
+	}
+
+	wg.Wait()
 }
 
 func getLogger(logPath string) *log.Logger {

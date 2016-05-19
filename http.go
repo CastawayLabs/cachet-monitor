@@ -36,8 +36,8 @@ func (monitor *CachetMonitor) makeRequest(requestType string, url string, reqBod
 }
 
 // SendMetric sends lag metric point
-func (monitor *CachetMonitor) SendMetric(metricID int, delay int64) error {
-	if metricID <= 0 {
+func (monitor *Monitor) SendMetric(delay int64) error {
+	if monitor.MetricID == 0 {
 		return nil
 	}
 
@@ -45,7 +45,7 @@ func (monitor *CachetMonitor) SendMetric(metricID int, delay int64) error {
 		"value": delay,
 	})
 
-	resp, _, err := monitor.makeRequest("POST", "/metrics/"+strconv.Itoa(metricID)+"/points", jsonBytes)
+	resp, _, err := monitor.config.makeRequest("POST", "/metrics/"+strconv.Itoa(monitor.MetricID)+"/points", jsonBytes)
 	if err != nil || resp.StatusCode != 200 {
 		return fmt.Errorf("Could not log data point!\n%v\n", err)
 	}

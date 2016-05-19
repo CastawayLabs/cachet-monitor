@@ -14,34 +14,50 @@ Configuration
 
 ```
 {
+  // URL for the API. Note: Must end with /api/v1
   "api_url": "https://<cachet domain>/api/v1",
+  // Your API token for Cachet
   "api_token": "<cachet api token>",
-  "insecure_api": false, // optional, false default, set if your certificate is self-signed/untrusted
+  // optional, false default, set if your certificate is self-signed/untrusted
+  "insecure_api": false,
   "monitors": [{
-    "name": "Name of your monitor", // required, friendly name for your monitor
-    "url": "Ping URL", // required, url to probe
-    "method": "get", // optional, http method (defaults GET)
-    "strict_tls": true, // self-signed ssl certificate
-    "interval": 10, // seconds between checks
-    "metric_id": <metric id>, // post lag to cachet metric (graph)
-    "component_id": <component id>, // post incidents to this component
-    "threshold": 80, // If % of downtime is over this threshold, open an incident
-    "expected_status_code": 200, // optional, expected status code (either status code or body must be supplied)
-    "expected_body": "P.*NG" // optional, regular expression
+    // required, friendly name for your monitor
+    "name": "Name of your monitor",
+    // required, url to probe
+    "url": "Ping URL",
+    // optional, http method (defaults GET)
+    "method": "get",
+    // self-signed ssl certificate
+    "strict_tls": true,
+    // seconds between checks
+    "interval": 10,
+    // post lag to cachet metric (graph)
+    // note either metric ID or component ID are required
+    "metric_id": <metric id>,
+    // post incidents to this component
+    "component_id": <component id>,
+    // If % of downtime is over this threshold, open an incident
+    "threshold": 80,
+    // optional, expected status code (either status code or body must be supplied)
+    "expected_status_code": 200,
+    // optional, regular expression to match body content
+    "expected_body": "P.*NG"
   }],
-  "system_name": "", // optional, system name to identify bot
-  "log_path": "" // optional, defaults to stdout
+  // optional, system name to identify bot (uses hostname by default)
+  "system_name": "",
+  // optional, defaults to stdout
+  "log_path": ""
 }
 ```
 
 Installation
 ------------
 
-1. Download binary from release page
+1. Download binary from [release page](https://github.com/CastawayLabs/cachet-monitor/releases)
 2. Create your configuration ([example](https://raw.githubusercontent.com/CastawayLabs/cachet-monitor/master/example.config.json))
 3. `cachet-monitor -c /etc/cachet-monitor.config.json`
 
-tip: run in background using `nohup cachet-monitor 2>&1 > /var/log/cachet-monitor.log &`
+pro tip: run in background using `nohup cachet-monitor 2>&1 > /var/log/cachet-monitor.log &`
 
 ```
 Usage of cachet-monitor:

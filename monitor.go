@@ -112,7 +112,7 @@ func (monitor *Monitor) Tick() {
 	monitor.AnalyseData()
 
 	if isUp == true && monitor.MetricID > 0 {
-		monitor.config.SendMetric(monitor.MetricID, lag)
+		monitor.SendMetric(lag)
 	}
 }
 

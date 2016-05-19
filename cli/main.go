@@ -53,6 +53,22 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for _, mon := range cfg.Monitors {
+		cfg.Logger.Printf(" Starting %s: %d seconds check interval\n - %v %s", mon.Name, mon.CheckInterval, mon.Method, mon.URL)
+
+		// print features
+		if mon.ExpectedStatusCode > 0 {
+			cfg.Logger.Printf(" - Expect HTTP %d", mon.ExpectedStatusCode)
+		}
+		if len(mon.ExpectedBody) > 0 {
+			cfg.Logger.Printf(" - Expect Body to match \"%v\"", mon.ExpectedBody)
+		}
+		if mon.MetricID > 0 {
+			cfg.Logger.Printf(" - Log lag to metric id %d\n", mon.MetricID)
+		}
+		if mon.ComponentID > 0 {
+			cfg.Logger.Printf(" - Update component id %d\n\n", mon.ComponentID)
+		}
+
 		go mon.Start(cfg, wg)
 	}
 

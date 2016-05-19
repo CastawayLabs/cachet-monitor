@@ -48,23 +48,6 @@ func (mon *Monitor) Start(cfg *CachetMonitor, wg *sync.WaitGroup) {
 	wg.Add(1)
 	mon.config = cfg
 	mon.stopC = make(chan bool)
-
-	mon.config.Logger.Printf(" Starting %s: %d seconds check interval\n - %v %s", mon.Name, mon.CheckInterval, mon.Method, mon.URL)
-
-	// print features
-	if mon.ExpectedStatusCode > 0 {
-		mon.config.Logger.Printf(" - Expect HTTP %d", mon.ExpectedStatusCode)
-	}
-	if len(mon.ExpectedBody) > 0 {
-		mon.config.Logger.Printf(" - Expect Body to match \"%v\"", mon.ExpectedBody)
-	}
-	if mon.MetricID > 0 {
-		mon.config.Logger.Printf(" - Log lag to metric id %d\n", mon.MetricID)
-	}
-	if mon.ComponentID > 0 {
-		mon.config.Logger.Printf(" - Update component id %d\n\n", mon.ComponentID)
-	}
-
 	mon.Tick()
 
 	ticker := time.NewTicker(mon.CheckInterval * time.Second)

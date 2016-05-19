@@ -29,9 +29,8 @@ type Monitor struct {
 	ComponentID int `json:"component_id"`
 
 	// Threshold = percentage
-	Threshold float32 `json:"threshold"`
-	// Saturat
-	ExpectedStatusCode int `json:"expected_status_code"`
+	Threshold          float32 `json:"threshold"`
+	ExpectedStatusCode int     `json:"expected_status_code"`
 	// compiled to Regexp
 	ExpectedBody string `json:"expected_body"`
 	bodyRegexp   *regexp.Regexp

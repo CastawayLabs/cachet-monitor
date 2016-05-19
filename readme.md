@@ -82,3 +82,10 @@ We made this tool because we felt the need to have our own monitoring software (
 The idea is a stateless program which collects data and pushes it to a central cachet instance.
 
 This gives us power to have an army of geographically distributed loggers and reveal issues in both latency & downtime on client websites.
+
+Package usage
+-------------
+
+When using `cachet-monitor` as a package in another program, you should follow what `cli/main.go` does. It is important to call `ValidateConfiguration` on `CachetMonitor` and all the monitors inside.
+
+[API Documentation](https://godoc.org/github.com/CastawayLabs/cachet-monitor)

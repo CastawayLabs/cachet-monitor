@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-const HttpTimeout = time.Duration(time.Second)
 const DefaultInterval = 60
+const DefaultTimeout = 1
 const DefaultTimeFormat = "15:04:05 Jan 2 MST"
 
 // Monitor data model
@@ -24,6 +24,7 @@ type Monitor struct {
 	Method        string        `json:"method"`
 	StrictTLS     bool          `json:"strict_tls"`
 	CheckInterval time.Duration `json:"interval"`
+	HttpTimeout   time.Duration `json:"timeout"`
 
 	MetricID    int `json:"metric_id"`
 	ComponentID int `json:"component_id"`
@@ -100,7 +101,7 @@ func (monitor *Monitor) Tick() {
 
 func (monitor *Monitor) doRequest() bool {
 	client := &http.Client{
-		Timeout: HttpTimeout,
+		Timeout: time.Duration(monitor.HttpTimeout * time.Second),
 	}
 	if monitor.StrictTLS == false {
 		client.Transport = &http.Transport{
@@ -211,6 +212,10 @@ func (monitor *Monitor) ValidateConfiguration() error {
 
 	if monitor.CheckInterval < 1 {
 		monitor.CheckInterval = DefaultInterval
+	}
+
+	if monitor.HttpTimeout < 1 {
+		monitor.HttpTimeout = DefaultTimeout
 	}
 
 	monitor.Method = strings.ToUpper(monitor.Method)

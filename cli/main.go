@@ -53,7 +53,7 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for _, mon := range cfg.Monitors {
-		cfg.Logger.Printf(" Starting %s: %d seconds check interval\n - %v %s", mon.Name, mon.CheckInterval, mon.Method, mon.URL)
+		cfg.Logger.Printf(" Starting %s: %d seconds check interval\n - %v %s (%d second/s timeout)", mon.Name, mon.CheckInterval, mon.Method, mon.URL, mon.HttpTimeout)
 
 		// print features
 		if mon.ExpectedStatusCode > 0 {

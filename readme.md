@@ -32,6 +32,8 @@ Configuration
     "strict_tls": true,
     // seconds between checks
     "interval": 10,
+    // seconds for http timeout
+    "timeout": 5,
     // post lag to cachet metric (graph)
     // note either metric ID or component ID are required
     "metric_id": <metric id>,

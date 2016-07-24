@@ -53,9 +53,14 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for _, mon := range cfg.Monitors {
-		cfg.Logger.Printf(" Starting %s: %d seconds check interval\n - %v %s (%d second/s timeout)", mon.Name, mon.CheckInterval, mon.Method, mon.URL, mon.HttpTimeout)
+		cfg.Logger.Printf(" Starting %s: %d seconds check interval - %v %s (%d second/s timeout)", mon.Name, mon.CheckInterval, mon.Method, mon.URL, mon.HttpTimeout)
 
 		// print features
+		if len(mon.HttpHeaders) > 0 {
+            for _, h := range mon.HttpHeaders {
+    			cfg.Logger.Printf(" - Add HTTP-Header '%s' '%s'", h.Name, h.Value)
+            }
+		}
 		if mon.ExpectedStatusCode > 0 {
 			cfg.Logger.Printf(" - Expect HTTP %d", mon.ExpectedStatusCode)
 		}

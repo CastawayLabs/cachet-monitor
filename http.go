@@ -21,6 +21,7 @@ func (monitor *CachetMonitor) makeRequest(requestType string, url string, reqBod
 	if monitor.InsecureAPI == true {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			Proxy:           http.ProxyFromEnvironment,
 		}
 	}
 

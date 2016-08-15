@@ -83,7 +83,7 @@ func (incident *Incident) GetComponentStatus(cfg *CachetMonitor) (int, error) {
 
 	var data struct {
 		Component struct {
-			Status int `json:"status"`
+			Status int `json:"status,string"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &data); err != nil {

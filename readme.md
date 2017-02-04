@@ -28,6 +28,11 @@ Configuration
     "url": "Ping URL",
     // optional, http method (defaults GET)
     "method": "get",
+    // optional, http Headers to add (default none)
+    "headers": [
+        // specify Name and Value of Http-Header, eg. Authorization
+        { "name": "Authorization", "value": "Basic <hash>" }
+    ],
     // self-signed ssl certificate
     "strict_tls": true,
     // seconds between checks

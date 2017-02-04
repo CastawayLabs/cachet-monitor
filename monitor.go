@@ -17,6 +17,11 @@ const DefaultInterval = 60
 const DefaultTimeout = 1
 const DefaultTimeFormat = "15:04:05 Jan 2 MST"
 
+type HttpHeader struct {
+    Name          string        `json:"header"`
+    Value         string        `json:"value"`
+}
+
 // Monitor data model
 type Monitor struct {
 	Name          string        `json:"name"`
@@ -25,6 +30,7 @@ type Monitor struct {
 	StrictTLS     bool          `json:"strict_tls"`
 	CheckInterval time.Duration `json:"interval"`
 	HttpTimeout   time.Duration `json:"timeout"`
+	HttpHeaders   []*HttpHeader `json:"headers"`
 
 	MetricID    int `json:"metric_id"`
 	ComponentID int `json:"component_id"`
@@ -109,37 +115,42 @@ func (monitor *Monitor) doRequest() bool {
 		}
 	}
 
-	resp, err := client.Get(monitor.URL)
-	if err != nil {
-		monitor.lastFailReason = err.Error()
+    req, err := http.NewRequest(monitor.Method, monitor.URL, nil)
+    for _, h := range monitor.HttpHeaders {
+        req.Header.Add(h.Name, h.Value)
+    }
 
-		return false
-	}
+    resp, err := client.Do(req)
+    if err != nil {
+        monitor.lastFailReason = err.Error()
 
-	defer resp.Body.Close()
+        return false
+    }
 
-	if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
-		monitor.lastFailReason = "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
+    defer resp.Body.Close()
 
-		return false
-	}
+    if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
+        monitor.lastFailReason = "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
 
-	if monitor.bodyRegexp != nil {
-		// check body
-		responseBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			monitor.lastFailReason = err.Error()
+        return false
+    }
 
-			return false
-		}
+    if monitor.bodyRegexp != nil {
+        // check body
+        responseBody, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+            monitor.lastFailReason = err.Error()
 
-		match := monitor.bodyRegexp.Match(responseBody)
-		if !match {
-			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ". Expected to match " + monitor.ExpectedBody
-		}
+            return false
+        }
 
-		return match
-	}
+        match := monitor.bodyRegexp.Match(responseBody)
+        if !match {
+            monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ". Expected to match " + monitor.ExpectedBody
+        }
+
+        return match
+    }
 
 	return true
 }

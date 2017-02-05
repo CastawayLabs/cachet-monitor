@@ -1,3 +1,5 @@
 gin-bin
 example.config.local.json
 .idea
+/config.yml
+/config.json

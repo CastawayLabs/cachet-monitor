@@ -1,0 +1,14 @@
+api:
+  url: https://demo.cachethq.io/api/v1
+  token: 9yMHsdioQosnyVK4iCVR
+monitors:
+  - name: google
+    target: https://google.com
+    threshold: 80
+    component_id: 1
+    interval: 10
+    timeout: 5
+    headers:
+      Authorization: Basic <hash>
+    expected_status_code: 200
+    strict: true

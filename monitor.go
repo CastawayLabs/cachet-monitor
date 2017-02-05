@@ -1,46 +1,48 @@
 package cachet
 
 import (
-	"crypto/tls"
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"regexp"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
-const DefaultInterval = 60
-const DefaultTimeout = 1
+const DefaultInterval = time.Second * 60
+const DefaultTimeout = time.Second
 const DefaultTimeFormat = "15:04:05 Jan 2 MST"
+const HistorySize = 10
 
-type HttpHeader struct {
-    Name          string        `json:"header"`
-    Value         string        `json:"value"`
+type MonitorInterface interface {
+	do() bool
+	Validate() []string
+	GetMonitor() *AbstractMonitor
 }
 
-// Monitor data model
-type Monitor struct {
-	Name          string        `json:"name"`
-	URL           string        `json:"url"`
-	Method        string        `json:"method"`
-	StrictTLS     bool          `json:"strict_tls"`
-	CheckInterval time.Duration `json:"interval"`
-	HttpTimeout   time.Duration `json:"timeout"`
-	HttpHeaders   []*HttpHeader `json:"headers"`
+// AbstractMonitor data model
+type AbstractMonitor struct {
+	Name   string `json:"name"`
+	Target string `json:"target"`
+
+	// (default)http, tcp, dns, icmp
+	Type string `json:"type"`
+
+	// defaults true
+	Strict bool `json:"strict"`
+
+	Interval time.Duration `json:"interval"`
+	Timeout  time.Duration `json:"timeout"`
 
 	MetricID    int `json:"metric_id"`
 	ComponentID int `json:"component_id"`
 
+	// Templating stuff
+	Template struct {
+		Investigating MessageTemplate `json:"investigating"`
+		Fixed         MessageTemplate `json:"fixed"`
+	} `json:"template"`
+
 	// Threshold = percentage
-	Threshold          float32 `json:"threshold"`
-	ExpectedStatusCode int     `json:"expected_status_code"`
-	// compiled to Regexp
-	ExpectedBody string `json:"expected_body"`
-	bodyRegexp   *regexp.Regexp
+	Threshold float32 `json:"threshold"`
 
 	history        []bool
 	lastFailReason string
@@ -51,13 +53,23 @@ type Monitor struct {
 	stopC chan bool
 }
 
-func (mon *Monitor) Start(cfg *CachetMonitor, wg *sync.WaitGroup) {
+func (mon *AbstractMonitor) do() bool {
+	return true
+}
+func (mon *AbstractMonitor) Validate() []string {
+	return []string{}
+}
+func (mon *AbstractMonitor) GetMonitor() *AbstractMonitor {
+	return mon
+}
+
+func (mon *AbstractMonitor) Start(cfg *CachetMonitor, wg *sync.WaitGroup) {
 	wg.Add(1)
 	mon.config = cfg
 	mon.stopC = make(chan bool)
 	mon.Tick()
 
-	ticker := time.NewTicker(mon.CheckInterval * time.Second)
+	ticker := time.NewTicker(mon.Interval * time.Second)
 	for {
 		select {
 		case <-ticker.C:
@@ -69,7 +81,7 @@ func (mon *Monitor) Start(cfg *CachetMonitor, wg *sync.WaitGroup) {
 	}
 }
 
-func (monitor *Monitor) Stop() {
+func (monitor *AbstractMonitor) Stop() {
 	if monitor.Stopped() {
 		return
 	}
@@ -77,7 +89,7 @@ func (monitor *Monitor) Stop() {
 	close(monitor.stopC)
 }
 
-func (monitor *Monitor) Stopped() bool {
+func (monitor *AbstractMonitor) Stopped() bool {
 	select {
 	case <-monitor.stopC:
 		return true
@@ -86,77 +98,29 @@ func (monitor *Monitor) Stopped() bool {
 	}
 }
 
-func (monitor *Monitor) Tick() {
+func (monitor *AbstractMonitor) Tick() {
 	reqStart := getMs()
-	isUp := monitor.doRequest()
+	up := monitor.do()
 	lag := getMs() - reqStart
 
-	if len(monitor.history) == 9 {
-		monitor.config.Logger.Printf("%v is now saturated\n", monitor.Name)
+	if len(monitor.history) == HistorySize-1 {
+		logrus.Warnf("%v is now saturated\n", monitor.Name)
 	}
-	if len(monitor.history) >= 10 {
-		monitor.history = monitor.history[len(monitor.history)-9:]
+	if len(monitor.history) >= HistorySize {
+		monitor.history = monitor.history[len(monitor.history)-(HistorySize-1):]
 	}
-	monitor.history = append(monitor.history, isUp)
+	monitor.history = append(monitor.history, up)
 	monitor.AnalyseData()
 
-	if isUp == true && monitor.MetricID > 0 {
-		monitor.SendMetric(lag)
+	// report lag
+	if up && monitor.MetricID > 0 {
+		logrus.Infof("%v", lag)
+		// monitor.SendMetric(lag)
 	}
-}
-
-func (monitor *Monitor) doRequest() bool {
-	client := &http.Client{
-		Timeout: time.Duration(monitor.HttpTimeout * time.Second),
-	}
-	if monitor.StrictTLS == false {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-	}
-
-    req, err := http.NewRequest(monitor.Method, monitor.URL, nil)
-    for _, h := range monitor.HttpHeaders {
-        req.Header.Add(h.Name, h.Value)
-    }
-
-    resp, err := client.Do(req)
-    if err != nil {
-        monitor.lastFailReason = err.Error()
-
-        return false
-    }
-
-    defer resp.Body.Close()
-
-    if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
-        monitor.lastFailReason = "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
-
-        return false
-    }
-
-    if monitor.bodyRegexp != nil {
-        // check body
-        responseBody, err := ioutil.ReadAll(resp.Body)
-        if err != nil {
-            monitor.lastFailReason = err.Error()
-
-            return false
-        }
-
-        match := monitor.bodyRegexp.Match(responseBody)
-        if !match {
-            monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ". Expected to match " + monitor.ExpectedBody
-        }
-
-        return match
-    }
-
-	return true
 }
 
 // AnalyseData decides if the monitor is statistically up or down and creates / resolves an incident
-func (monitor *Monitor) AnalyseData() {
+func (monitor *AbstractMonitor) AnalyseData() {
 	// look at the past few incidents
 	numDown := 0
 	for _, wasUp := range monitor.history {
@@ -166,7 +130,7 @@ func (monitor *Monitor) AnalyseData() {
 	}
 
 	t := (float32(numDown) / float32(len(monitor.history))) * 100
-	monitor.config.Logger.Printf("%s %.2f%%/%.2f%% down at %v\n", monitor.Name, t, monitor.Threshold, time.Now().UnixNano()/int64(time.Second))
+	logrus.Printf("%s %.2f%%/%.2f%% down at %v\n", monitor.Name, t, monitor.Threshold, time.Now().UnixNano()/int64(time.Second))
 
 	if len(monitor.history) != 10 {
 		// not saturated
@@ -186,16 +150,16 @@ func (monitor *Monitor) AnalyseData() {
 		}
 
 		// is down, create an incident
-		monitor.config.Logger.Printf("%v creating incident. Monitor is down: %v", monitor.Name, monitor.lastFailReason)
+		logrus.Printf("%v creating incident. Monitor is down: %v", monitor.Name, monitor.lastFailReason)
 		// set investigating status
 		monitor.incident.SetInvestigating()
 		// create/update incident
 		if err := monitor.incident.Send(monitor.config); err != nil {
-			monitor.config.Logger.Printf("Error sending incident: %v\n", err)
+			logrus.Printf("Error sending incident: %v\n", err)
 		}
 	} else if t < monitor.Threshold && monitor.incident != nil {
 		// was down, created an incident, its now ok, make it resolved.
-		monitor.config.Logger.Printf("%v resolved downtime incident", monitor.Name)
+		logrus.Printf("%v resolved downtime incident", monitor.Name)
 
 		// resolve incident
 		monitor.incident.Message = "\n**Resolved** - " + time.Now().Format(DefaultTimeFormat) + "\n\n - - - \n\n" + monitor.incident.Message
@@ -205,47 +169,4 @@ func (monitor *Monitor) AnalyseData() {
 		monitor.lastFailReason = ""
 		monitor.incident = nil
 	}
-}
-
-func (monitor *Monitor) Validate() error {
-	if len(monitor.ExpectedBody) > 0 {
-		exp, err := regexp.Compile(monitor.ExpectedBody)
-		if err != nil {
-			return err
-		}
-
-		monitor.bodyRegexp = exp
-	}
-
-	if len(monitor.ExpectedBody) == 0 && monitor.ExpectedStatusCode == 0 {
-		return errors.New("Nothing to check, both 'expected_body' and 'expected_status_code' fields empty")
-	}
-
-	if monitor.CheckInterval < 1 {
-		monitor.CheckInterval = DefaultInterval
-	}
-
-	if monitor.HttpTimeout < 1 {
-		monitor.HttpTimeout = DefaultTimeout
-	}
-
-	monitor.Method = strings.ToUpper(monitor.Method)
-	switch monitor.Method {
-	case "GET", "POST", "DELETE", "OPTIONS", "HEAD":
-		break
-	case "":
-		monitor.Method = "GET"
-	default:
-		return fmt.Errorf("Unsupported check method: %v", monitor.Method)
-	}
-
-	if monitor.ComponentID == 0 && monitor.MetricID == 0 {
-		return errors.New("component_id & metric_id are unset")
-	}
-
-	if monitor.Threshold <= 0 {
-		monitor.Threshold = 100
-	}
-
-	return nil
 }

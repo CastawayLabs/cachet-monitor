@@ -1,27 +1,35 @@
 package cachet
 
 import (
+	"fmt"
 	"net"
 	"os"
+	"time"
+
+	"encoding/json"
 
 	"github.com/Sirupsen/logrus"
 )
 
 type CachetMonitor struct {
-	Name     string     `json:"system_name"`
-	API      CachetAPI  `json:"api"`
-	Monitors []*Monitor `json:"monitors"`
+	SystemName  string            `json:"system_name"`
+	API         CachetAPI         `json:"api"`
+	RawMonitors []json.RawMessage `json:"monitors"`
+
+	Monitors []MonitorInterface `json:"-"`
 }
 
+// Validate configuration
 func (cfg *CachetMonitor) Validate() bool {
 	valid := true
 
-	if len(cfg.Name) == 0 {
+	if len(cfg.SystemName) == 0 {
 		// get hostname
-		cfg.Name = getHostname()
+		cfg.SystemName = getHostname()
 	}
 
-	if len(cfg.API.Token) == 0 || len(cfg.API.Url) == 0 {
+	fmt.Println(cfg.API)
+	if len(cfg.API.Token) == 0 || len(cfg.API.URL) == 0 {
 		logrus.Warnf("API URL or API Token missing.\nGet help at https://github.com/castawaylabs/cachet-monitor")
 		valid = false
 	}
@@ -32,7 +40,7 @@ func (cfg *CachetMonitor) Validate() bool {
 	}
 
 	for _, monitor := range cfg.Monitors {
-		if err := monitor.Validate(); !valid {
+		if errs := monitor.Validate(); len(errs) > 0 {
 			valid = false
 		}
 	}
@@ -48,11 +56,13 @@ func getHostname() string {
 	}
 
 	addrs, err := net.InterfaceAddrs()
-	if err != nil {
+	if err != nil || len(addrs) == 0 {
 		return "unknown"
 	}
 
-	for _, addr := range addrs {
-		return addr.String()
-	}
+	return addrs[0].String()
+}
+
+func getMs() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
 }

@@ -1,63 +1,127 @@
 package cachet
 
 import (
-	"bytes"
 	"crypto/tls"
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
-type HttpMonitor struct {
-	URL           string        `json:"url"`
-	Method        string        `json:"method"`
-	StrictTLS     bool          `json:"strict_tls"`
-	CheckInterval time.Duration `json:"interval"`
-	HttpTimeout   time.Duration `json:"timeout"`
+type HTTPMonitor struct {
+	*AbstractMonitor
 
-	// Threshold = percentage
-	Threshold          float32 `json:"threshold"`
-	ExpectedStatusCode int     `json:"expected_status_code"`
+	Method             string            `json:"method"`
+	ExpectedStatusCode int               `json:"expected_status_code"`
+	Headers            map[string]string `json:"headers"`
+
 	// compiled to Regexp
 	ExpectedBody string `json:"expected_body"`
 	bodyRegexp   *regexp.Regexp
 }
 
-type TCPMonitor struct{}
-type ICMPMonitor struct{}
-type DNSMonitor struct{}
-
-func (monitor *CachetMonitor) makeRequest(requestType string, url string, reqBody []byte) (*http.Response, []byte, error) {
-	req, err := http.NewRequest(requestType, monitor.APIUrl+url, bytes.NewBuffer(reqBody))
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Cachet-Token", monitor.APIToken)
-
-	client := &http.Client{}
-	if monitor.InsecureAPI == true {
+func (monitor *HTTPMonitor) do() bool {
+	client := &http.Client{
+		Timeout: time.Duration(monitor.Timeout * time.Second),
+	}
+	if monitor.Strict == false {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			Proxy:           http.ProxyFromEnvironment,
 		}
 	}
 
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, []byte{}, err
+	req, err := http.NewRequest(monitor.Method, monitor.Target, nil)
+	for k, v := range monitor.Headers {
+		req.Header.Add(k, v)
 	}
 
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
+	resp, err := client.Do(req)
+	if err != nil {
+		monitor.lastFailReason = err.Error()
 
-	return res, body, nil
+		return false
+	}
+
+	defer resp.Body.Close()
+
+	if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
+		monitor.lastFailReason = "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
+
+		return false
+	}
+
+	if monitor.bodyRegexp != nil {
+		// check body
+		responseBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			monitor.lastFailReason = err.Error()
+
+			return false
+		}
+
+		match := monitor.bodyRegexp.Match(responseBody)
+		if !match {
+			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ". Expected to match " + monitor.ExpectedBody
+		}
+
+		return match
+	}
+
+	return true
+}
+
+func (monitor *HTTPMonitor) Validate() []string {
+	errs := []string{}
+	if len(monitor.ExpectedBody) > 0 {
+		exp, err := regexp.Compile(monitor.ExpectedBody)
+		if err != nil {
+			errs = append(errs, "Regexp compilation failure: "+err.Error())
+		} else {
+			monitor.bodyRegexp = exp
+		}
+	}
+
+	if len(monitor.ExpectedBody) == 0 && monitor.ExpectedStatusCode == 0 {
+		errs = append(errs, "Both 'expected_body' and 'expected_status_code' fields empty")
+	}
+
+	if monitor.Interval < 1 {
+		monitor.Interval = DefaultInterval
+	}
+
+	if monitor.Timeout < 1 {
+		monitor.Timeout = DefaultTimeout
+	}
+
+	monitor.Method = strings.ToUpper(monitor.Method)
+	switch monitor.Method {
+	case "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD":
+		break
+	case "":
+		monitor.Method = "GET"
+	default:
+		errs = append(errs, "Unsupported check method: "+monitor.Method)
+	}
+
+	if monitor.ComponentID == 0 && monitor.MetricID == 0 {
+		errs = append(errs, "component_id & metric_id are unset")
+	}
+
+	if monitor.Threshold <= 0 {
+		monitor.Threshold = 100
+	}
+
+	return errs
+}
+
+func (mon *HTTPMonitor) GetMonitor() *AbstractMonitor {
+	return mon.AbstractMonitor
 }
 
 // SendMetric sends lag metric point
-func (monitor *Monitor) SendMetric(delay int64) error {
+/*func (monitor *Monitor) SendMetric(delay int64) error {
 	if monitor.MetricID == 0 {
 		return nil
 	}
@@ -73,7 +137,4 @@ func (monitor *Monitor) SendMetric(delay int64) error {
 
 	return nil
 }
-
-func getMs() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
-}
+*/

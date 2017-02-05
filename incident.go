@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/Sirupsen/logrus"
 )
 
 // Incident Cachet data model
@@ -33,7 +35,7 @@ func (incident *Incident) Send(cfg *CachetMonitor) error {
 		}
 
 		if err != nil {
-			cfg.Logger.Printf("cannot fetch component: %v", err)
+			logrus.Warnf("cannot fetch component: %v", err)
 		}
 	case 4:
 		// fixed
@@ -49,7 +51,7 @@ func (incident *Incident) Send(cfg *CachetMonitor) error {
 
 	jsonBytes, _ := json.Marshal(incident)
 
-	resp, body, err := cfg.makeRequest(requestType, requestURL, jsonBytes)
+	resp, body, err := cfg.API.NewRequest(requestType, requestURL, jsonBytes)
 	if err != nil {
 		return err
 	}
@@ -72,7 +74,7 @@ func (incident *Incident) Send(cfg *CachetMonitor) error {
 }
 
 func (incident *Incident) GetComponentStatus(cfg *CachetMonitor) (int, error) {
-	resp, body, err := cfg.makeRequest("GET", "/components/"+strconv.Itoa(incident.ComponentID), nil)
+	resp, body, err := cfg.API.NewRequest("GET", "/components/"+strconv.Itoa(incident.ComponentID), nil)
 	if err != nil {
 		return 0, err
 	}

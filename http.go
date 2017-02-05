@@ -7,9 +7,29 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 )
+
+type HttpMonitor struct {
+	URL           string        `json:"url"`
+	Method        string        `json:"method"`
+	StrictTLS     bool          `json:"strict_tls"`
+	CheckInterval time.Duration `json:"interval"`
+	HttpTimeout   time.Duration `json:"timeout"`
+
+	// Threshold = percentage
+	Threshold          float32 `json:"threshold"`
+	ExpectedStatusCode int     `json:"expected_status_code"`
+	// compiled to Regexp
+	ExpectedBody string `json:"expected_body"`
+	bodyRegexp   *regexp.Regexp
+}
+
+type TCPMonitor struct{}
+type ICMPMonitor struct{}
+type DNSMonitor struct{}
 
 func (monitor *CachetMonitor) makeRequest(requestType string, url string, reqBody []byte) (*http.Response, []byte, error) {
 	req, err := http.NewRequest(requestType, monitor.APIUrl+url, bytes.NewBuffer(reqBody))

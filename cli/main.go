@@ -3,40 +3,60 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"flag"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"sync"
 
+	"strings"
+
+	"github.com/Sirupsen/logrus"
 	cachet "github.com/castawaylabs/cachet-monitor"
+	docopt "github.com/docopt/docopt-go"
+	yaml "gopkg.in/yaml.v2"
 )
 
-var configPath string
-var systemName string
-var logPath string
+const usage = `cachet-monitor
+
+Usage:
+  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME]
+  cachet-monitor -h | --help | --version
+  cachet-monitor print-config
+
+Arguments:
+  PATH     path to config.yml
+  LOGPATH  path to log output (defaults to STDOUT)
+  NAME     name of this logger
+
+Examples:
+  cachet-monitor -c /root/cachet-monitor.yml
+  cachet-monitor -c /root/cachet-monitor.yml --log=/var/log/cachet-monitor.log --name="development machine"
+
+Options:
+  -c PATH.yml --config PATH     Path to configuration file
+  -h --help                     Show this screen.
+  --version                     Show version
+  print-config                  Print example configuration
+  
+Environment varaibles:
+  CACHET_API      override API url from configuration
+  CACHET_TOKEN    override API token from configuration
+  CACHET_DEV      set to enable dev logging`
 
 func main() {
-	flag.StringVar(&configPath, "c", "/etc/cachet-monitor.config.json", "Config path")
-	flag.StringVar(&systemName, "name", "", "System Name")
-	flag.StringVar(&logPath, "log", "", "Log path")
-	flag.Parse()
+	arguments, _ := docopt.Parse(usage, nil, true, "cachet-monitor", false)
 
-	cfg, err := getConfiguration(configPath)
+	cfg, err := getConfiguration(arguments["--config"].(string))
 	if err != nil {
-		panic(err)
+		logrus.Panicf("Unable to start (reading config): %v", err)
 	}
 
-	if len(systemName) > 0 {
-		cfg.SystemName = systemName
+	if name := arguments["--name"]; name != nil {
+		cfg.SystemName = name.(string)
 	}
-	if len(logPath) > 0 {
-		cfg.LogPath = logPath
-	}
+	logrus.SetOutput(getLogger(arguments["--log"]))
 
 	if len(os.Getenv("CACHET_API")) > 0 {
 		cfg.APIUrl = os.Getenv("CACHET_API")
@@ -44,29 +64,39 @@ func main() {
 	if len(os.Getenv("CACHET_TOKEN")) > 0 {
 		cfg.APIToken = os.Getenv("CACHET_TOKEN")
 	}
+	if len(os.Getenv("CACHET_DEV")) > 0 {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 
 	if err := cfg.ValidateConfiguration(); err != nil {
 		panic(err)
 	}
 
-	cfg.Logger.Printf("System: %s\nAPI: %s\nMonitors: %d\n\n", cfg.SystemName, cfg.APIUrl, len(cfg.Monitors))
+	logrus.Infof("System: %s\nAPI: %s\nMonitors: %d\n\n", cfg.SystemName, cfg.APIUrl, len(cfg.Monitors))
 
 	wg := &sync.WaitGroup{}
 	for _, mon := range cfg.Monitors {
-		cfg.Logger.Printf(" Starting %s: %d seconds check interval\n - %v %s (%d second/s timeout)", mon.Name, mon.CheckInterval, mon.Method, mon.URL, mon.HttpTimeout)
+		l := logrus.WithFields(logrus.Fields{
+			"name":     mon.Name,
+			"interval": mon.CheckInterval,
+			"method":   mon.Method,
+			"url":      mon.URL,
+			"timeout":  mon.HttpTimeout,
+		})
+		l.Info(" Starting monitor")
 
 		// print features
 		if mon.ExpectedStatusCode > 0 {
-			cfg.Logger.Printf(" - Expect HTTP %d", mon.ExpectedStatusCode)
+			l.Infof(" - Expect HTTP %d", mon.ExpectedStatusCode)
 		}
 		if len(mon.ExpectedBody) > 0 {
-			cfg.Logger.Printf(" - Expect Body to match \"%v\"", mon.ExpectedBody)
+			l.Infof(" - Expect Body to match \"%v\"", mon.ExpectedBody)
 		}
 		if mon.MetricID > 0 {
-			cfg.Logger.Printf(" - Log lag to metric id %d\n", mon.MetricID)
+			l.Infof(" - Log lag to metric id %d\n", mon.MetricID)
 		}
 		if mon.ComponentID > 0 {
-			cfg.Logger.Printf(" - Update component id %d\n\n", mon.ComponentID)
+			l.Infof(" - Update component id %d\n\n", mon.ComponentID)
 		}
 
 		go mon.Start(cfg, wg)
@@ -76,7 +106,7 @@ func main() {
 	signal.Notify(signals, os.Interrupt, os.Kill)
 	<-signals
 
-	cfg.Logger.Println("Abort: Waiting monitors to finish")
+	logrus.Warnf("Abort: Waiting monitors to finish")
 	for _, mon := range cfg.Monitors {
 		mon.Stop()
 	}
@@ -84,24 +114,17 @@ func main() {
 	wg.Wait()
 }
 
-func getLogger(logPath string) *log.Logger {
-	var logWriter = os.Stdout
-	var err error
-
-	if len(logPath) > 0 {
-		logWriter, err = os.Create(logPath)
-		if err != nil {
-			fmt.Printf("Unable to open file '%v' for logging\n", logPath)
-			os.Exit(1)
-		}
+func getLogger(logPath *string) *os.File {
+	if logPath == nil || len(*logPath) == 0 {
+		return os.Stdout
 	}
 
-	flags := log.Llongfile | log.Ldate | log.Ltime
-	if len(os.Getenv("CACHET_DEV")) > 0 {
-		flags = 0
+	if file, err := os.Create(logPath); err != nil {
+		logrus.Errorf("Unable to open file '%v' for logging: \n%v", logPath, err)
+		os.Exit(1)
+	} else {
+		return file
 	}
-
-	return log.New(logWriter, "", flags)
 }
 
 func getConfiguration(path string) (*cachet.CachetMonitor, error) {
@@ -114,26 +137,31 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 		// download config
 		response, err := http.Get(path)
 		if err != nil {
-			return nil, errors.New("Cannot download network config: " + err.Error())
+			logrus.Warn("Unable to download network configuration")
+			return nil, err
 		}
 
 		defer response.Body.Close()
 		data, _ = ioutil.ReadAll(response.Body)
 
-		fmt.Println("Downloaded network configuration.")
+		logrus.Info("Downloaded network configuration.")
 	} else {
 		data, err = ioutil.ReadFile(path)
 		if err != nil {
-			return nil, errors.New("Config file '" + path + "' missing!")
+			return nil, errors.New("Unable to open file: '" + path + "'")
 		}
 	}
 
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		fmt.Println(err)
-		return nil, errors.New("Cannot parse config!")
+	// test file path for yml
+	if strings.HasSuffix(path, ".yml") || strings.HasSuffix(path, ".yaml") {
+		err = yaml.Unmarshal(data, &cfg)
+	} else {
+		err = json.Unmarshal(data, &cfg)
 	}
 
-	cfg.Logger = getLogger(cfg.LogPath)
+	if err != nil {
+		logrus.Warnf("Unable to parse configuration file")
+	}
 
-	return &cfg, nil
+	return &cfg, err
 }

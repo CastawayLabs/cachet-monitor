@@ -196,7 +196,7 @@ func (monitor *Monitor) AnalyseData() {
 	}
 }
 
-func (monitor *Monitor) ValidateConfiguration() error {
+func (monitor *Monitor) Validate() error {
 	if len(monitor.ExpectedBody) > 0 {
 		exp, err := regexp.Compile(monitor.ExpectedBody)
 		if err != nil {

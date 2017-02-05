@@ -13,7 +13,11 @@ const DefaultTimeFormat = "15:04:05 Jan 2 MST"
 const HistorySize = 10
 
 type MonitorInterface interface {
-	do() bool
+	ClockStart(*CachetMonitor, *sync.WaitGroup)
+	ClockStop()
+	tick()
+	test() bool
+
 	Validate() []string
 	GetMonitor() *AbstractMonitor
 	Describe() []string
@@ -25,9 +29,7 @@ type AbstractMonitor struct {
 	Target string
 
 	// (default)http, tcp, dns, icmp
-	Type string
-
-	// defaults true
+	Type   string
 	Strict bool
 
 	Interval time.Duration
@@ -54,16 +56,34 @@ type AbstractMonitor struct {
 	stopC chan bool
 }
 
-func (mon *AbstractMonitor) do() bool {
-	return true
-}
 func (mon *AbstractMonitor) Validate() []string {
-	return []string{}
+	errs := []string{}
+
+	if len(mon.Name) == 0 {
+		errs = append(errs, "Name is required")
+	}
+
+	if mon.Interval < 1 {
+		mon.Interval = DefaultInterval
+	}
+	if mon.Timeout < 1 {
+		mon.Timeout = DefaultTimeout
+	}
+
+	if mon.ComponentID == 0 && mon.MetricID == 0 {
+		errs = append(errs, "component_id & metric_id are unset")
+	}
+
+	if mon.Threshold <= 0 {
+		mon.Threshold = 100
+	}
+
+	return errs
 }
 func (mon *AbstractMonitor) GetMonitor() *AbstractMonitor {
 	return mon
 }
-func (mon AbstractMonitor) Describe() []string {
+func (mon *AbstractMonitor) Describe() []string {
 	features := []string{"Type: " + mon.Type}
 
 	if len(mon.Name) > 0 {
@@ -73,17 +93,19 @@ func (mon AbstractMonitor) Describe() []string {
 	return features
 }
 
-func (mon *AbstractMonitor) Start(cfg *CachetMonitor, wg *sync.WaitGroup) {
+func (mon *AbstractMonitor) ClockStart(cfg *CachetMonitor, wg *sync.WaitGroup) {
 	wg.Add(1)
 	mon.config = cfg
 	mon.stopC = make(chan bool)
-	mon.Tick()
+	if cfg.Immediate {
+		mon.tick()
+	}
 
 	ticker := time.NewTicker(mon.Interval * time.Second)
 	for {
 		select {
 		case <-ticker.C:
-			mon.Tick()
+			mon.tick()
 		case <-mon.stopC:
 			wg.Done()
 			return
@@ -91,41 +113,35 @@ func (mon *AbstractMonitor) Start(cfg *CachetMonitor, wg *sync.WaitGroup) {
 	}
 }
 
-func (monitor *AbstractMonitor) Stop() {
-	if monitor.Stopped() {
-		return
-	}
-
-	close(monitor.stopC)
-}
-
-func (monitor *AbstractMonitor) Stopped() bool {
+func (mon *AbstractMonitor) ClockStop() {
 	select {
-	case <-monitor.stopC:
-		return true
+	case <-mon.stopC:
+		return
 	default:
-		return false
+		close(mon.stopC)
 	}
 }
 
-func (monitor *AbstractMonitor) Tick() {
+func (mon *AbstractMonitor) test() bool { return false }
+
+func (mon *AbstractMonitor) tick() {
 	reqStart := getMs()
-	up := monitor.do()
+	up := mon.test()
 	lag := getMs() - reqStart
 
-	if len(monitor.history) == HistorySize-1 {
-		logrus.Warnf("%v is now saturated\n", monitor.Name)
+	if len(mon.history) == HistorySize-1 {
+		logrus.Warnf("%v is now saturated\n", mon.Name)
 	}
-	if len(monitor.history) >= HistorySize {
-		monitor.history = monitor.history[len(monitor.history)-(HistorySize-1):]
+	if len(mon.history) >= HistorySize {
+		mon.history = mon.history[len(mon.history)-(HistorySize-1):]
 	}
-	monitor.history = append(monitor.history, up)
-	monitor.AnalyseData()
+	mon.history = append(mon.history, up)
+	mon.AnalyseData()
 
 	// report lag
-	if up && monitor.MetricID > 0 {
+	if up && mon.MetricID > 0 {
 		logrus.Infof("%v", lag)
-		// monitor.SendMetric(lag)
+		// mon.SendMetric(lag)
 	}
 }
 

@@ -21,7 +21,7 @@ import (
 const usage = `cachet-monitor
 
 Usage:
-  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME]
+  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate]
   cachet-monitor -h | --help | --version
   cachet-monitor print-config
 
@@ -38,6 +38,7 @@ Options:
   -c PATH.json --config PATH     Path to configuration file
   -h --help                      Show this screen.
   --version                      Show version
+  --immediate                    Tick immediately (by default waits for first defined interval)
   print-config                   Print example configuration
   
 Environment varaibles:
@@ -51,6 +52,10 @@ func main() {
 	cfg, err := getConfiguration(arguments["--config"].(string))
 	if err != nil {
 		logrus.Panicf("Unable to start (reading config): %v", err)
+	}
+
+	if immediate, ok := arguments["--immediate"]; ok {
+		cfg.Immediate = immediate.(bool)
 	}
 
 	if name := arguments["--name"]; name != nil {
@@ -73,6 +78,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	logrus.Debug("Configuration valid")
 	logrus.Infof("System: %s", cfg.SystemName)
 	logrus.Infof("API: %s", cfg.API.URL)
 	logrus.Infof("Monitors: %d\n", len(cfg.Monitors))
@@ -89,7 +95,7 @@ func main() {
 		logrus.Infof("Starting Monitor #%d:", index)
 		logrus.Infof("Features: \n - %v", strings.Join(monitor.Describe(), "\n - "))
 
-		// go mon.Start(cfg, wg)
+		go monitor.ClockStart(cfg, wg)
 	}
 
 	signals := make(chan os.Signal, 1)
@@ -98,7 +104,7 @@ func main() {
 
 	logrus.Warnf("Abort: Waiting monitors to finish")
 	for _, mon := range cfg.Monitors {
-		mon.GetMonitor().Stop()
+		mon.GetMonitor().ClockStop()
 	}
 
 	wg.Wait()

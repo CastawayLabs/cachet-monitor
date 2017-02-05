@@ -15,6 +15,8 @@ type CachetMonitor struct {
 	RawMonitors []map[string]interface{} `json:"monitors" yaml:"monitors"`
 
 	Monitors []MonitorInterface `json:"-" yaml:"-"`
+
+	Immediate bool `json:"-" yaml:"-"`
 }
 
 // Validate configuration

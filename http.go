@@ -40,7 +40,7 @@ type HTTPMonitor struct {
 	bodyRegexp   *regexp.Regexp
 }
 
-func (monitor *HTTPMonitor) do() bool {
+func (monitor *HTTPMonitor) test() bool {
 	client := &http.Client{
 		Timeout: time.Duration(monitor.Timeout * time.Second),
 	}
@@ -90,45 +90,30 @@ func (monitor *HTTPMonitor) do() bool {
 	return true
 }
 
-func (monitor *HTTPMonitor) Validate() []string {
-	errs := []string{}
-	if len(monitor.ExpectedBody) > 0 {
-		exp, err := regexp.Compile(monitor.ExpectedBody)
+func (mon *HTTPMonitor) Validate() []string {
+	errs := mon.AbstractMonitor.Validate()
+
+	if len(mon.ExpectedBody) > 0 {
+		exp, err := regexp.Compile(mon.ExpectedBody)
 		if err != nil {
 			errs = append(errs, "Regexp compilation failure: "+err.Error())
 		} else {
-			monitor.bodyRegexp = exp
+			mon.bodyRegexp = exp
 		}
 	}
 
-	if len(monitor.ExpectedBody) == 0 && monitor.ExpectedStatusCode == 0 {
+	if len(mon.ExpectedBody) == 0 && mon.ExpectedStatusCode == 0 {
 		errs = append(errs, "Both 'expected_body' and 'expected_status_code' fields empty")
 	}
 
-	if monitor.Interval < 1 {
-		monitor.Interval = DefaultInterval
-	}
-
-	if monitor.Timeout < 1 {
-		monitor.Timeout = DefaultTimeout
-	}
-
-	monitor.Method = strings.ToUpper(monitor.Method)
-	switch monitor.Method {
+	mon.Method = strings.ToUpper(mon.Method)
+	switch mon.Method {
 	case "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD":
 		break
 	case "":
-		monitor.Method = "GET"
+		mon.Method = "GET"
 	default:
-		errs = append(errs, "Unsupported check method: "+monitor.Method)
-	}
-
-	if monitor.ComponentID == 0 && monitor.MetricID == 0 {
-		errs = append(errs, "component_id & metric_id are unset")
-	}
-
-	if monitor.Threshold <= 0 {
-		monitor.Threshold = 100
+		errs = append(errs, "Unsupported HTTP method: "+mon.Method)
 	}
 
 	return errs

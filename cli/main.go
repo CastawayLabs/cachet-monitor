@@ -86,6 +86,11 @@ func main() {
 		l.Info(" Starting monitor")
 
 		// print features
+		if len(mon.HttpHeaders) > 0 {
+			for _, h := range mon.HttpHeaders {
+				logrus.Infof(" - HTTP-Header '%s' '%s'", h.Name, h.Value)
+			}
+		}
 		if mon.ExpectedStatusCode > 0 {
 			l.Infof(" - Expect HTTP %d", mon.ExpectedStatusCode)
 		}

@@ -10,6 +10,12 @@
       "component_id": 1,
       "interval": 10,
       "timeout": 5,
+      "headers": [
+        {
+          "header": "Authorization",
+          "value": "Basic <hash>"
+        }
+      ],
       "expected_status_code": 200,
       "strict_tls": true
     }

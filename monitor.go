@@ -15,34 +15,34 @@ const HistorySize = 10
 type MonitorInterface interface {
 	do() bool
 	Validate() []string
-	GetMonitor() *AbstractMonitor
+	GetMonitor() AbstractMonitor
 }
 
 // AbstractMonitor data model
 type AbstractMonitor struct {
-	Name   string `json:"name"`
-	Target string `json:"target"`
+	Name   string
+	Target string
 
 	// (default)http, tcp, dns, icmp
-	Type string `json:"type"`
+	Type string
 
 	// defaults true
-	Strict bool `json:"strict"`
+	Strict bool
 
-	Interval time.Duration `json:"interval"`
-	Timeout  time.Duration `json:"timeout"`
+	Interval time.Duration
+	Timeout  time.Duration
 
-	MetricID    int `json:"metric_id"`
-	ComponentID int `json:"component_id"`
+	MetricID    int `mapstructure:"metric_id"`
+	ComponentID int `mapstructure:"component_id"`
 
 	// Templating stuff
 	Template struct {
-		Investigating MessageTemplate `json:"investigating"`
-		Fixed         MessageTemplate `json:"fixed"`
-	} `json:"template"`
+		Investigating MessageTemplate
+		Fixed         MessageTemplate
+	}
 
 	// Threshold = percentage
-	Threshold float32 `json:"threshold"`
+	Threshold float32
 
 	history        []bool
 	lastFailReason string
@@ -59,7 +59,7 @@ func (mon *AbstractMonitor) do() bool {
 func (mon *AbstractMonitor) Validate() []string {
 	return []string{}
 }
-func (mon *AbstractMonitor) GetMonitor() *AbstractMonitor {
+func (mon AbstractMonitor) GetMonitor() AbstractMonitor {
 	return mon
 }
 

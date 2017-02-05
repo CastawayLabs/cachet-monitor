@@ -8,11 +8,14 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 
 	"github.com/Sirupsen/logrus"
 	cachet "github.com/castawaylabs/cachet-monitor"
 	docopt "github.com/docopt/docopt-go"
+	"github.com/mitchellh/mapstructure"
+	"gopkg.in/yaml.v2"
 )
 
 const usage = `cachet-monitor
@@ -162,25 +165,31 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 		}
 	}
 
-	if err = json.Unmarshal(data, &cfg); err != nil {
+	if strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml") {
+		err = yaml.Unmarshal(data, &cfg)
+	} else {
+		err = json.Unmarshal(data, &cfg)
+	}
+
+	if err != nil {
 		logrus.Warnf("Unable to parse configuration file")
 	}
 
 	cfg.Monitors = make([]cachet.MonitorInterface, len(cfg.RawMonitors))
 	for index, rawMonitor := range cfg.RawMonitors {
 		var abstract cachet.AbstractMonitor
-		if err := json.Unmarshal(rawMonitor, &abstract); err != nil {
-			logrus.Errorf("Unable to unmarshal monitor (index: %d): %v", index, err)
-			continue
-		}
-
 		var t cachet.MonitorInterface
 		var err error
 
-		switch abstract.Type {
+		monType := ""
+		if t, ok := rawMonitor["type"].(string); ok {
+			monType = t
+		}
+
+		switch monType {
 		case "http", "":
 			var s cachet.HTTPMonitor
-			err = json.Unmarshal(rawMonitor, &s)
+			err = mapstructure.Decode(rawMonitor, &s)
 			t = &s
 		case "dns":
 			// t = cachet.DNSMonitor

@@ -10,15 +10,33 @@ import (
 	"time"
 )
 
-type HTTPMonitor struct {
-	*AbstractMonitor
+// // Investigating template
+// var HTTPTemplate = MessageTemplate{
+// 	Subject: `{{ .Name }} - {{ .config.SystemName }}`,
+// 	Message: `{{ .Name }} check **failed** - {{ .now }}
 
-	Method             string            `json:"method"`
-	ExpectedStatusCode int               `json:"expected_status_code"`
-	Headers            map[string]string `json:"headers"`
+// {{ .lastFailReason }}`,
+// }
+
+// // Fixed template
+// var HTTPTemplate = MessageTemplate{
+// 	Subject: `{{ .Name }} - {{ .config.SystemName }}`,
+// 	Message: `**Resolved** - {{ .now }}
+
+// - - -
+
+// {{ .incident.Message }}`,
+// }
+
+type HTTPMonitor struct {
+	AbstractMonitor `mapstructure:",squash"`
+
+	Method             string
+	ExpectedStatusCode int `mapstructure:"expected_status_code"`
+	Headers            map[string]string
 
 	// compiled to Regexp
-	ExpectedBody string `json:"expected_body"`
+	ExpectedBody string `mapstructure:"expected_body"`
 	bodyRegexp   *regexp.Regexp
 }
 
@@ -116,7 +134,7 @@ func (monitor *HTTPMonitor) Validate() []string {
 	return errs
 }
 
-func (mon *HTTPMonitor) GetMonitor() *AbstractMonitor {
+func (mon *HTTPMonitor) GetMonitor() AbstractMonitor {
 	return mon.AbstractMonitor
 }
 

@@ -1,22 +1,20 @@
 package cachet
 
 import (
-	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
-
-	"encoding/json"
 
 	"github.com/Sirupsen/logrus"
 )
 
 type CachetMonitor struct {
-	SystemName  string            `json:"system_name"`
-	API         CachetAPI         `json:"api"`
-	RawMonitors []json.RawMessage `json:"monitors"`
+	SystemName  string                   `json:"system_name"`
+	API         CachetAPI                `json:"api"`
+	RawMonitors []map[string]interface{} `json:"monitors" yaml:"monitors"`
 
-	Monitors []MonitorInterface `json:"-"`
+	Monitors []MonitorInterface `json:"-" yaml:"-"`
 }
 
 // Validate configuration
@@ -28,7 +26,6 @@ func (cfg *CachetMonitor) Validate() bool {
 		cfg.SystemName = getHostname()
 	}
 
-	fmt.Println(cfg.API)
 	if len(cfg.API.Token) == 0 || len(cfg.API.URL) == 0 {
 		logrus.Warnf("API URL or API Token missing.\nGet help at https://github.com/castawaylabs/cachet-monitor")
 		valid = false
@@ -39,8 +36,9 @@ func (cfg *CachetMonitor) Validate() bool {
 		valid = false
 	}
 
-	for _, monitor := range cfg.Monitors {
+	for index, monitor := range cfg.Monitors {
 		if errs := monitor.Validate(); len(errs) > 0 {
+			logrus.Warnf("Monitor validation errors (index %d): %v", index, "\n - "+strings.Join(errs, "\n - "))
 			valid = false
 		}
 	}

@@ -134,8 +134,11 @@ func (monitor *HTTPMonitor) Validate() []string {
 	return errs
 }
 
-func (mon *HTTPMonitor) GetMonitor() AbstractMonitor {
-	return mon.AbstractMonitor
+func (mon *HTTPMonitor) Describe() []string {
+	features := mon.AbstractMonitor.Describe()
+	features = append(features, "Method: "+mon.Method)
+
+	return features
 }
 
 // SendMetric sends lag metric point

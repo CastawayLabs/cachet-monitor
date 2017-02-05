@@ -73,45 +73,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	logrus.Infof("System: %s\nAPI: %s\nMonitors: %d\n\n", cfg.SystemName, cfg.API.URL, len(cfg.Monitors))
+	logrus.Infof("System: %s", cfg.SystemName)
+	logrus.Infof("API: %s", cfg.API.URL)
+	logrus.Infof("Monitors: %d\n", len(cfg.Monitors))
+
 	logrus.Infof("Pinging cachet")
 	if err := cfg.API.Ping(); err != nil {
-		logrus.Warnf("Cannot ping cachet!\n%v", err)
+		logrus.Errorf("Cannot ping cachet!\n%v", err)
+		os.Exit(1)
 	}
+	logrus.Infof("Ping OK")
 
 	wg := &sync.WaitGroup{}
-	for _, monitorInterface := range cfg.Monitors {
-		mon := monitorInterface.GetMonitor()
-		l := logrus.WithFields(logrus.Fields{
-			"name":     mon.Name,
-			"interval": mon.Interval,
-			"target":   mon.Target,
-			"timeout":  mon.Timeout,
-		})
-		l.Info(" Starting monitor")
+	for index, monitor := range cfg.Monitors {
+		logrus.Infof("Starting Monitor #%d:", index)
+		logrus.Infof("Features: \n - %v", strings.Join(monitor.Describe(), "\n - "))
 
-		// print features
-		if mon.Type == "http" {
-			httpMonitor := monitorInterface.(*cachet.HTTPMonitor)
-
-			for k, v := range httpMonitor.Headers {
-				logrus.Infof(" - HTTP-Header '%s' '%s'", k, v)
-			}
-			if httpMonitor.ExpectedStatusCode > 0 {
-				l.Infof(" - Expect HTTP %d", httpMonitor.ExpectedStatusCode)
-			}
-			if len(httpMonitor.ExpectedBody) > 0 {
-				l.Infof(" - Expect Body to match \"%v\"", httpMonitor.ExpectedBody)
-			}
-		}
-		if mon.MetricID > 0 {
-			l.Infof(" - Log lag to metric id %d\n", mon.MetricID)
-		}
-		if mon.ComponentID > 0 {
-			l.Infof(" - Update component id %d\n\n", mon.ComponentID)
-		}
-
-		go mon.Start(cfg, wg)
+		// go mon.Start(cfg, wg)
 	}
 
 	signals := make(chan os.Signal, 1)
@@ -120,7 +98,7 @@ func main() {
 
 	logrus.Warnf("Abort: Waiting monitors to finish")
 	for _, mon := range cfg.Monitors {
-		mon.(*cachet.AbstractMonitor).Stop()
+		mon.GetMonitor().Stop()
 	}
 
 	wg.Wait()
@@ -177,17 +155,16 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 
 	cfg.Monitors = make([]cachet.MonitorInterface, len(cfg.RawMonitors))
 	for index, rawMonitor := range cfg.RawMonitors {
-		var abstract cachet.AbstractMonitor
 		var t cachet.MonitorInterface
 		var err error
 
-		monType := ""
+		monType := cachet.GetMonitorType("")
 		if t, ok := rawMonitor["type"].(string); ok {
-			monType = t
+			monType = cachet.GetMonitorType(t)
 		}
 
 		switch monType {
-		case "http", "":
+		case "http":
 			var s cachet.HTTPMonitor
 			err = mapstructure.Decode(rawMonitor, &s)
 			t = &s
@@ -198,9 +175,11 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 		case "tcp":
 			// t = cachet.TCPMonitor
 		default:
-			logrus.Errorf("Invalid monitor type (index: %d) %v", index, abstract.Type)
+			logrus.Errorf("Invalid monitor type (index: %d) %v", index, monType)
 			continue
 		}
+
+		t.GetMonitor().Type = monType
 
 		if err != nil {
 			logrus.Errorf("Unable to unmarshal monitor to type (index: %d): %v", index, err)

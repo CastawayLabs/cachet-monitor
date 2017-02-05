@@ -15,7 +15,8 @@ const HistorySize = 10
 type MonitorInterface interface {
 	do() bool
 	Validate() []string
-	GetMonitor() AbstractMonitor
+	GetMonitor() *AbstractMonitor
+	Describe() []string
 }
 
 // AbstractMonitor data model
@@ -59,8 +60,17 @@ func (mon *AbstractMonitor) do() bool {
 func (mon *AbstractMonitor) Validate() []string {
 	return []string{}
 }
-func (mon AbstractMonitor) GetMonitor() AbstractMonitor {
+func (mon *AbstractMonitor) GetMonitor() *AbstractMonitor {
 	return mon
+}
+func (mon AbstractMonitor) Describe() []string {
+	features := []string{"Type: " + mon.Type}
+
+	if len(mon.Name) > 0 {
+		features = append(features, "Name: "+mon.Name)
+	}
+
+	return features
 }
 
 func (mon *AbstractMonitor) Start(cfg *CachetMonitor, wg *sync.WaitGroup) {

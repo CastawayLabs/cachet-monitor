@@ -64,3 +64,11 @@ func getHostname() string {
 func getMs() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
+
+func GetMonitorType(t string) string {
+	if len(t) == 0 {
+		return "http"
+	}
+
+	return t
+}

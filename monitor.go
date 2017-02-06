@@ -162,50 +162,50 @@ func (mon *AbstractMonitor) tick(iface MonitorInterface) {
 }
 
 // AnalyseData decides if the monitor is statistically up or down and creates / resolves an incident
-func (monitor *AbstractMonitor) AnalyseData() {
+func (mon *AbstractMonitor) AnalyseData() {
 	// look at the past few incidents
 	numDown := 0
-	for _, wasUp := range monitor.history {
+	for _, wasUp := range mon.history {
 		if wasUp == false {
 			numDown++
 		}
 	}
 
-	t := (float32(numDown) / float32(len(monitor.history))) * 100
-	if monitor.ThresholdCount {
-		logrus.Printf("%s %d/%d down at %v", monitor.Name, numDown, int(monitor.Threshold), time.Now().Format(DefaultTimeFormat))
+	t := (float32(numDown) / float32(len(mon.history))) * 100
+	if mon.ThresholdCount {
+		logrus.Printf("%s %d/%d down at %v", mon.Name, numDown, int(mon.Threshold), time.Now().Format(mon.config.DateFormat))
 	} else {
-		logrus.Printf("%s %.2f%%/%.2f%% down at %v", monitor.Name, t, monitor.Threshold, time.Now().Format(DefaultTimeFormat))
+		logrus.Printf("%s %.2f%%/%.2f%% down at %v", mon.Name, t, mon.Threshold, time.Now().Format(mon.config.DateFormat))
 	}
 
 	histSize := HistorySize
-	if monitor.ThresholdCount {
-		histSize = int(monitor.Threshold)
+	if mon.ThresholdCount {
+		histSize = int(mon.Threshold)
 	}
 
-	if len(monitor.history) != histSize {
+	if len(mon.history) != histSize {
 		// not saturated
 		return
 	}
 
-	triggered := (monitor.ThresholdCount && numDown == int(monitor.Threshold)) || (!monitor.ThresholdCount && t > monitor.Threshold)
+	triggered := (mon.ThresholdCount && numDown == int(mon.Threshold)) || (!mon.ThresholdCount && t > mon.Threshold)
 
-	if triggered && monitor.incident == nil {
+	if triggered && mon.incident == nil {
 		// create incident
-		subject, message := monitor.Template.Investigating.Exec(getTemplateData(monitor))
-		monitor.incident = &Incident{
+		subject, message := mon.Template.Investigating.Exec(getTemplateData(mon))
+		mon.incident = &Incident{
 			Name:        subject,
-			ComponentID: monitor.ComponentID,
+			ComponentID: mon.ComponentID,
 			Message:     message,
 			Notify:      true,
 		}
 
 		// is down, create an incident
-		logrus.Warnf("%v: creating incident. Monitor is down: %v", monitor.Name, monitor.lastFailReason)
+		logrus.Warnf("%v: creating incident. Monitor is down: %v", mon.Name, mon.lastFailReason)
 		// set investigating status
-		monitor.incident.SetInvestigating()
+		mon.incident.SetInvestigating()
 		// create/update incident
-		if err := monitor.incident.Send(monitor.config); err != nil {
+		if err := mon.incident.Send(mon.config); err != nil {
 			logrus.Printf("Error sending incident: %v\n", err)
 		}
 
@@ -213,20 +213,20 @@ func (monitor *AbstractMonitor) AnalyseData() {
 	}
 
 	// still triggered or no incident
-	if triggered || monitor.incident == nil {
+	if triggered || mon.incident == nil {
 		return
 	}
 
 	logrus.Warnf("Resolving incident")
 
 	// was down, created an incident, its now ok, make it resolved.
-	logrus.Printf("%v resolved downtime incident", monitor.Name)
+	logrus.Printf("%v resolved downtime incident", mon.Name)
 
 	// resolve incident
-	monitor.incident.Message = "\n**Resolved** - " + time.Now().Format(DefaultTimeFormat) + "\n\n - - - \n\n" + monitor.incident.Message
-	monitor.incident.SetFixed()
-	monitor.incident.Send(monitor.config)
+	mon.incident.Message = "\n**Resolved** - " + time.Now().Format(mon.config.DateFormat) + "\n\n - - - \n\n" + mon.incident.Message
+	mon.incident.SetFixed()
+	mon.incident.Send(mon.config)
 
-	monitor.lastFailReason = ""
-	monitor.incident = nil
+	mon.lastFailReason = ""
+	mon.incident = nil
 }

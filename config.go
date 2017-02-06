@@ -10,13 +10,13 @@ import (
 )
 
 type CachetMonitor struct {
-	SystemName  string                   `json:"system_name"`
+	SystemName  string                   `json:"system_name" yaml:"system_name"`
+	DateFormat  string                   `json:"date_format" yaml:"date_format"`
 	API         CachetAPI                `json:"api"`
 	RawMonitors []map[string]interface{} `json:"monitors" yaml:"monitors"`
 
-	Monitors []MonitorInterface `json:"-" yaml:"-"`
-
-	Immediate bool `json:"-" yaml:"-"`
+	Monitors  []MonitorInterface `json:"-" yaml:"-"`
+	Immediate bool               `json:"-" yaml:"-"`
 }
 
 // Validate configuration
@@ -26,6 +26,10 @@ func (cfg *CachetMonitor) Validate() bool {
 	if len(cfg.SystemName) == 0 {
 		// get hostname
 		cfg.SystemName = getHostname()
+	}
+
+	if len(cfg.DateFormat) == 0 {
+		cfg.DateFormat = DefaultTimeFormat
 	}
 
 	if len(cfg.API.Token) == 0 || len(cfg.API.URL) == 0 {
@@ -73,4 +77,12 @@ func GetMonitorType(t string) string {
 	}
 
 	return t
+}
+
+func getTemplateData(monitor *AbstractMonitor) map[string]interface{} {
+	return map[string]interface{}{
+		"SystemName": monitor.config.SystemName,
+		"API":        monitor.config.API,
+		"Monitor":    monitor,
+	}
 }

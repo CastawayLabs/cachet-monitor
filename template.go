@@ -1,6 +1,11 @@
 package cachet
 
-import "text/template"
+import (
+	"bytes"
+	"text/template"
+
+	"github.com/Sirupsen/logrus"
+)
 
 type MessageTemplate struct {
 	Subject string `json:"subject"`
@@ -31,6 +36,16 @@ func (t *MessageTemplate) Compile() error {
 	}
 
 	return err
+}
+
+func (t *MessageTemplate) Exec(data interface{}) (string, string) {
+	buf := new(bytes.Buffer)
+
+	logrus.Warnf("%#v", t.subjectTpl)
+	t.subjectTpl.Execute(buf, data)
+	subject := buf.String()
+
+	return subject, ""
 }
 
 func compileTemplate(text string) (*template.Template, error) {

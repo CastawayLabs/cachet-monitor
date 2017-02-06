@@ -44,8 +44,9 @@ type AbstractMonitor struct {
 		Fixed         MessageTemplate
 	}
 
-	// Threshold = percentage
-	Threshold float32
+	// Threshold = percentage / number of down incidents
+	Threshold      float32
+	ThresholdCount bool `mapstructure:"threshold_count"`
 
 	history        []bool
 	lastFailReason string
@@ -83,7 +84,10 @@ func (mon *AbstractMonitor) Validate() []string {
 	}
 
 	if err := mon.Template.Fixed.Compile(); err != nil {
-		errs = append(errs, "Could not compile template: "+err.Error())
+		errs = append(errs, "Could not compile \"fixed\" template: "+err.Error())
+	}
+	if err := mon.Template.Investigating.Compile(); err != nil {
+		errs = append(errs, "Could not compile \"investigating\" template: "+err.Error())
 	}
 
 	return errs
@@ -137,11 +141,16 @@ func (mon *AbstractMonitor) tick(iface MonitorInterface) {
 	up := iface.test()
 	lag := getMs() - reqStart
 
-	if len(mon.history) == HistorySize-1 {
+	histSize := HistorySize
+	if mon.ThresholdCount {
+		histSize = int(mon.Threshold)
+	}
+
+	if len(mon.history) == histSize-1 {
 		logrus.Warnf("%v is now saturated\n", mon.Name)
 	}
-	if len(mon.history) >= HistorySize {
-		mon.history = mon.history[len(mon.history)-(HistorySize-1):]
+	if len(mon.history) >= histSize {
+		mon.history = mon.history[len(mon.history)-(histSize-1):]
 	}
 	mon.history = append(mon.history, up)
 	mon.AnalyseData()
@@ -163,43 +172,61 @@ func (monitor *AbstractMonitor) AnalyseData() {
 	}
 
 	t := (float32(numDown) / float32(len(monitor.history))) * 100
-	logrus.Printf("%s %.2f%%/%.2f%% down at %v\n", monitor.Name, t, monitor.Threshold, time.Now().UnixNano()/int64(time.Second))
+	if monitor.ThresholdCount {
+		logrus.Printf("%s %d/%d down at %v", monitor.Name, numDown, int(monitor.Threshold), time.Now().Format(DefaultTimeFormat))
+	} else {
+		logrus.Printf("%s %.2f%%/%.2f%% down at %v", monitor.Name, t, monitor.Threshold, time.Now().Format(DefaultTimeFormat))
+	}
 
-	if len(monitor.history) != HistorySize {
+	histSize := HistorySize
+	if monitor.ThresholdCount {
+		histSize = int(monitor.Threshold)
+	}
+
+	if len(monitor.history) != histSize {
 		// not saturated
 		return
 	}
 
-	if t > monitor.Threshold && monitor.incident == nil {
+	triggered := (monitor.ThresholdCount && numDown == int(monitor.Threshold)) || (!monitor.ThresholdCount && t > monitor.Threshold)
+
+	if triggered && monitor.incident == nil {
+		// create incident
+		subject, message := monitor.Template.Investigating.Exec(getTemplateData(monitor))
 		monitor.incident = &Incident{
-			Name:        monitor.Name + " - " + monitor.config.SystemName,
+			Name:        subject,
 			ComponentID: monitor.ComponentID,
-			Message:     monitor.Name + " check **failed** - " + time.Now().Format(DefaultTimeFormat),
+			Message:     message,
 			Notify:      true,
 		}
 
-		if len(monitor.lastFailReason) > 0 {
-			monitor.incident.Message += "\n\n `" + monitor.lastFailReason + "`"
-		}
-
 		// is down, create an incident
-		logrus.Printf("%v creating incident. Monitor is down: %v", monitor.Name, monitor.lastFailReason)
+		logrus.Warnf("%v: creating incident. Monitor is down: %v", monitor.Name, monitor.lastFailReason)
 		// set investigating status
 		monitor.incident.SetInvestigating()
 		// create/update incident
 		if err := monitor.incident.Send(monitor.config); err != nil {
 			logrus.Printf("Error sending incident: %v\n", err)
 		}
-	} else if t < monitor.Threshold && monitor.incident != nil {
-		// was down, created an incident, its now ok, make it resolved.
-		logrus.Printf("%v resolved downtime incident", monitor.Name)
 
-		// resolve incident
-		monitor.incident.Message = "\n**Resolved** - " + time.Now().Format(DefaultTimeFormat) + "\n\n - - - \n\n" + monitor.incident.Message
-		monitor.incident.SetFixed()
-		monitor.incident.Send(monitor.config)
-
-		monitor.lastFailReason = ""
-		monitor.incident = nil
+		return
 	}
+
+	// still triggered or no incident
+	if triggered || monitor.incident == nil {
+		return
+	}
+
+	logrus.Warnf("Resolving incident")
+
+	// was down, created an incident, its now ok, make it resolved.
+	logrus.Printf("%v resolved downtime incident", monitor.Name)
+
+	// resolve incident
+	monitor.incident.Message = "\n**Resolved** - " + time.Now().Format(DefaultTimeFormat) + "\n\n - - - \n\n" + monitor.incident.Message
+	monitor.incident.SetFixed()
+	monitor.incident.Send(monitor.config)
+
+	monitor.lastFailReason = ""
+	monitor.incident = nil
 }

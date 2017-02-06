@@ -8,11 +8,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
 // Investigating template
 var defaultHTTPInvestigatingTpl = MessageTemplate{
-	Subject: `{{ .Name }} - {{ .config.SystemName }}`,
+	Subject: `{{ .Monitor.Name }} - {{ .SystemName }}`,
 	Message: `{{ .Name }} check **failed** - {{ .now }}
 
 {{ .lastFailReason }}`,
@@ -90,6 +92,7 @@ func (mon *HTTPMonitor) Validate() []string {
 	mon.Template.Fixed.SetDefault(defaultHTTPFixedTpl)
 
 	errs := mon.AbstractMonitor.Validate()
+	logrus.Warnf("%#v", mon.Template.Investigating)
 
 	if len(mon.ExpectedBody) > 0 {
 		exp, err := regexp.Compile(mon.ExpectedBody)

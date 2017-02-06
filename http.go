@@ -10,23 +10,23 @@ import (
 	"time"
 )
 
-// // Investigating template
-// var HTTPTemplate = MessageTemplate{
-// 	Subject: `{{ .Name }} - {{ .config.SystemName }}`,
-// 	Message: `{{ .Name }} check **failed** - {{ .now }}
+// Investigating template
+var defaultHTTPInvestigatingTpl = MessageTemplate{
+	Subject: `{{ .Name }} - {{ .config.SystemName }}`,
+	Message: `{{ .Name }} check **failed** - {{ .now }}
 
-// {{ .lastFailReason }}`,
-// }
+{{ .lastFailReason }}`,
+}
 
-// // Fixed template
-// var HTTPTemplate = MessageTemplate{
-// 	Subject: `{{ .Name }} - {{ .config.SystemName }}`,
-// 	Message: `**Resolved** - {{ .now }}
+// Fixed template
+var defaultHTTPFixedTpl = MessageTemplate{
+	Subject: `{{ .Name }} - {{ .config.SystemName }}`,
+	Message: `**Resolved** - {{ .now }}
 
-// - - -
+- - -
 
-// {{ .incident.Message }}`,
-// }
+{{ .incident.Message }}`,
+}
 
 type HTTPMonitor struct {
 	AbstractMonitor `mapstructure:",squash"`
@@ -41,24 +41,21 @@ type HTTPMonitor struct {
 }
 
 func (monitor *HTTPMonitor) test() bool {
-	client := &http.Client{
-		Timeout: time.Duration(monitor.Timeout * time.Second),
-	}
-	if monitor.Strict == false {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-	}
-
 	req, err := http.NewRequest(monitor.Method, monitor.Target, nil)
 	for k, v := range monitor.Headers {
 		req.Header.Add(k, v)
 	}
 
+	transport := http.DefaultTransport.(*http.Transport)
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: monitor.Strict == false}
+	client := &http.Client{
+		Timeout:   time.Duration(monitor.Timeout * time.Second),
+		Transport: transport,
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		monitor.lastFailReason = err.Error()
-
 		return false
 	}
 
@@ -66,7 +63,6 @@ func (monitor *HTTPMonitor) test() bool {
 
 	if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
 		monitor.lastFailReason = "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
-
 		return false
 	}
 
@@ -75,7 +71,6 @@ func (monitor *HTTPMonitor) test() bool {
 		responseBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			monitor.lastFailReason = err.Error()
-
 			return false
 		}
 
@@ -91,6 +86,9 @@ func (monitor *HTTPMonitor) test() bool {
 }
 
 func (mon *HTTPMonitor) Validate() []string {
+	mon.Template.Investigating.SetDefault(defaultHTTPInvestigatingTpl)
+	mon.Template.Fixed.SetDefault(defaultHTTPFixedTpl)
+
 	errs := mon.AbstractMonitor.Validate()
 
 	if len(mon.ExpectedBody) > 0 {
@@ -125,22 +123,3 @@ func (mon *HTTPMonitor) Describe() []string {
 
 	return features
 }
-
-// SendMetric sends lag metric point
-/*func (monitor *Monitor) SendMetric(delay int64) error {
-	if monitor.MetricID == 0 {
-		return nil
-	}
-
-	jsonBytes, _ := json.Marshal(&map[string]interface{}{
-		"value": delay,
-	})
-
-	resp, _, err := monitor.config.makeRequest("POST", "/metrics/"+strconv.Itoa(monitor.MetricID)+"/points", jsonBytes)
-	if err != nil || resp.StatusCode != 200 {
-		return fmt.Errorf("Could not log data point!\n%v\n", err)
-	}
-
-	return nil
-}
-*/

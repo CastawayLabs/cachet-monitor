@@ -1,3 +1,5 @@
 package cachet
 
-type ICMPMonitor struct{}
+type ICMPMonitor struct {
+	AbstractMonitor `mapstructure:",squash"`
+}

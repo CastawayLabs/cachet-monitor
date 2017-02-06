@@ -13,9 +13,9 @@ const DefaultTimeFormat = "15:04:05 Jan 2 MST"
 const HistorySize = 10
 
 type MonitorInterface interface {
-	ClockStart(*CachetMonitor, *sync.WaitGroup)
+	ClockStart(*CachetMonitor, MonitorInterface, *sync.WaitGroup)
 	ClockStop()
-	tick()
+	tick(MonitorInterface)
 	test() bool
 
 	Validate() []string
@@ -70,12 +70,20 @@ func (mon *AbstractMonitor) Validate() []string {
 		mon.Timeout = DefaultTimeout
 	}
 
+	if mon.Timeout > mon.Interval {
+		errs = append(errs, "Timeout greater than interval")
+	}
+
 	if mon.ComponentID == 0 && mon.MetricID == 0 {
 		errs = append(errs, "component_id & metric_id are unset")
 	}
 
 	if mon.Threshold <= 0 {
 		mon.Threshold = 100
+	}
+
+	if err := mon.Template.Fixed.Compile(); err != nil {
+		errs = append(errs, "Could not compile template: "+err.Error())
 	}
 
 	return errs
@@ -93,19 +101,19 @@ func (mon *AbstractMonitor) Describe() []string {
 	return features
 }
 
-func (mon *AbstractMonitor) ClockStart(cfg *CachetMonitor, wg *sync.WaitGroup) {
+func (mon *AbstractMonitor) ClockStart(cfg *CachetMonitor, iface MonitorInterface, wg *sync.WaitGroup) {
 	wg.Add(1)
 	mon.config = cfg
 	mon.stopC = make(chan bool)
 	if cfg.Immediate {
-		mon.tick()
+		mon.tick(iface)
 	}
 
 	ticker := time.NewTicker(mon.Interval * time.Second)
 	for {
 		select {
 		case <-ticker.C:
-			mon.tick()
+			mon.tick(iface)
 		case <-mon.stopC:
 			wg.Done()
 			return
@@ -124,9 +132,9 @@ func (mon *AbstractMonitor) ClockStop() {
 
 func (mon *AbstractMonitor) test() bool { return false }
 
-func (mon *AbstractMonitor) tick() {
+func (mon *AbstractMonitor) tick(iface MonitorInterface) {
 	reqStart := getMs()
-	up := mon.test()
+	up := iface.test()
 	lag := getMs() - reqStart
 
 	if len(mon.history) == HistorySize-1 {
@@ -139,9 +147,8 @@ func (mon *AbstractMonitor) tick() {
 	mon.AnalyseData()
 
 	// report lag
-	if up && mon.MetricID > 0 {
-		logrus.Infof("%v", lag)
-		// mon.SendMetric(lag)
+	if mon.MetricID > 0 {
+		go mon.config.API.SendMetric(mon.MetricID, lag)
 	}
 }
 
@@ -158,7 +165,7 @@ func (monitor *AbstractMonitor) AnalyseData() {
 	t := (float32(numDown) / float32(len(monitor.history))) * 100
 	logrus.Printf("%s %.2f%%/%.2f%% down at %v\n", monitor.Name, t, monitor.Threshold, time.Now().UnixNano()/int64(time.Second))
 
-	if len(monitor.history) != 10 {
+	if len(monitor.history) != HistorySize {
 		// not saturated
 		return
 	}

@@ -3,15 +3,23 @@ package cachet
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type CachetAPI struct {
 	URL      string `json:"url"`
 	Token    string `json:"token"`
 	Insecure bool   `json:"insecure"`
+}
+
+type CachetResponse struct {
+	Data json.RawMessage `json:"data"`
 }
 
 func (api CachetAPI) Ping() error {
@@ -27,30 +35,43 @@ func (api CachetAPI) Ping() error {
 	return nil
 }
 
-func (api CachetAPI) NewRequest(requestType, url string, reqBody []byte) (*http.Response, []byte, error) {
+// SendMetric adds a data point to a cachet monitor
+func (api CachetAPI) SendMetric(id int, lag int64) {
+	logrus.Debugf("Sending lag metric ID:%d %vms", id, lag)
+
+	jsonBytes, _ := json.Marshal(map[string]interface{}{
+		"value":     lag,
+		"timestamp": time.Now().Unix(),
+	})
+
+	resp, _, err := api.NewRequest("POST", "/metrics/"+strconv.Itoa(id)+"/points", jsonBytes)
+	if err != nil || resp.StatusCode != 200 {
+		logrus.Warnf("Could not log metric! ID: %d, err: %v", id, err)
+	}
+}
+
+// NewRequest wraps http.NewRequest
+func (api CachetAPI) NewRequest(requestType, url string, reqBody []byte) (*http.Response, CachetResponse, error) {
 	req, err := http.NewRequest(requestType, api.URL+url, bytes.NewBuffer(reqBody))
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Cachet-Token", api.Token)
 
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-	}
-	if api.Insecure {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-
+	transport := http.DefaultTransport.(*http.Transport)
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: api.Insecure}
 	client := &http.Client{
 		Transport: transport,
 	}
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, []byte{}, err
+		return nil, CachetResponse{}, err
 	}
 
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
+	var body struct {
+		Data json.RawMessage `json:"data"`
+	}
+	err = json.NewDecoder(res.Body).Decode(&body)
 
-	return res, body, nil
+	return res, body, err
 }

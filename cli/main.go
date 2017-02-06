@@ -92,10 +92,10 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for index, monitor := range cfg.Monitors {
-		logrus.Infof("Starting Monitor #%d:", index)
+		logrus.Infof("Starting Monitor #%d: ", index)
 		logrus.Infof("Features: \n - %v", strings.Join(monitor.Describe(), "\n - "))
 
-		go monitor.ClockStart(cfg, wg)
+		go monitor.ClockStart(cfg, monitor, wg)
 	}
 
 	signals := make(chan os.Signal, 1)
@@ -164,6 +164,7 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 		var t cachet.MonitorInterface
 		var err error
 
+		// get default type
 		monType := cachet.GetMonitorType("")
 		if t, ok := rawMonitor["type"].(string); ok {
 			monType = cachet.GetMonitorType(t)
@@ -175,11 +176,17 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 			err = mapstructure.Decode(rawMonitor, &s)
 			t = &s
 		case "dns":
-			// t = cachet.DNSMonitor
+			var s cachet.DNSMonitor
+			err = mapstructure.Decode(rawMonitor, &s)
+			t = &s
 		case "icmp":
-			// t = cachet.ICMPMonitor
+			var s cachet.ICMPMonitor
+			err = mapstructure.Decode(rawMonitor, &s)
+			t = &s
 		case "tcp":
-			// t = cachet.TCPMonitor
+			var s cachet.TCPMonitor
+			err = mapstructure.Decode(rawMonitor, &s)
+			t = &s
 		default:
 			logrus.Errorf("Invalid monitor type (index: %d) %v", index, monType)
 			continue

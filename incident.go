@@ -57,15 +57,13 @@ func (incident *Incident) Send(cfg *CachetMonitor) error {
 	}
 
 	var data struct {
-		Incident struct {
-			ID int `json:"id"`
-		} `json:"data"`
+		ID int `json:"id"`
 	}
-	if err := json.Unmarshal(body, &data); err != nil {
-		return fmt.Errorf("Cannot parse incident body: %v, %v", err, string(body))
+	if err := json.Unmarshal(body.Data, &data); err != nil {
+		return fmt.Errorf("Cannot parse incident body: %v, %v", err, string(body.Data))
 	}
 
-	incident.ID = data.Incident.ID
+	incident.ID = data.ID
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Could not create/update incident!")
 	}
@@ -84,15 +82,13 @@ func (incident *Incident) GetComponentStatus(cfg *CachetMonitor) (int, error) {
 	}
 
 	var data struct {
-		Component struct {
-			Status int `json:"status"`
-		} `json:"data"`
+		Status int `json:"status"`
 	}
-	if err := json.Unmarshal(body, &data); err != nil {
-		return 0, fmt.Errorf("Cannot parse component body: %v. Err = %v", string(body), err)
+	if err := json.Unmarshal(body.Data, &data); err != nil {
+		return 0, fmt.Errorf("Cannot parse component body: %v. Err = %v", string(body.Data), err)
 	}
 
-	return data.Component.Status, nil
+	return data.Status, nil
 }
 
 // SetInvestigating sets status to Investigating

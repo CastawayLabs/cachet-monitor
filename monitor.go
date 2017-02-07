@@ -192,7 +192,10 @@ func (mon *AbstractMonitor) AnalyseData() {
 
 	if triggered && mon.incident == nil {
 		// create incident
-		subject, message := mon.Template.Investigating.Exec(getTemplateData(mon))
+		tplData := getTemplateData(mon)
+		tplData["FailReason"] = mon.lastFailReason
+
+		subject, message := mon.Template.Investigating.Exec(tplData)
 		mon.incident = &Incident{
 			Name:        subject,
 			ComponentID: mon.ComponentID,

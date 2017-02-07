@@ -3,8 +3,6 @@ package cachet
 import (
 	"bytes"
 	"text/template"
-
-	"github.com/Sirupsen/logrus"
 )
 
 type MessageTemplate struct {
@@ -39,13 +37,14 @@ func (t *MessageTemplate) Compile() error {
 }
 
 func (t *MessageTemplate) Exec(data interface{}) (string, string) {
+	return t.exec(t.subjectTpl, data), t.exec(t.messageTpl, data)
+}
+
+func (t *MessageTemplate) exec(tpl *template.Template, data interface{}) string {
 	buf := new(bytes.Buffer)
 
-	logrus.Warnf("%#v", t.subjectTpl)
-	t.subjectTpl.Execute(buf, data)
-	subject := buf.String()
-
-	return subject, ""
+	tpl.Execute(buf, data)
+	return buf.String()
 }
 
 func compileTemplate(text string) (*template.Template, error) {

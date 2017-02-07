@@ -15,14 +15,14 @@ import (
 // Investigating template
 var defaultHTTPInvestigatingTpl = MessageTemplate{
 	Subject: `{{ .Monitor.Name }} - {{ .SystemName }}`,
-	Message: `{{ .Name }} check **failed** - {{ .now }}
+	Message: `{{ .Monitor.Name }} check **failed** - {{ .now }}
 
-{{ .lastFailReason }}`,
+{{ .FailReason }}`,
 }
 
 // Fixed template
 var defaultHTTPFixedTpl = MessageTemplate{
-	Subject: `{{ .Name }} - {{ .config.SystemName }}`,
+	Subject: `{{ .Monitor.Name }} - {{ .SystemName }}`,
 	Message: `**Resolved** - {{ .now }}
 
 - - -

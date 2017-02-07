@@ -84,5 +84,6 @@ func getTemplateData(monitor *AbstractMonitor) map[string]interface{} {
 		"SystemName": monitor.config.SystemName,
 		"API":        monitor.config.API,
 		"Monitor":    monitor,
+		"now":        time.Now().Format(monitor.config.DateFormat),
 	}
 }

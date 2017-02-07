@@ -22,6 +22,7 @@ func (t *MessageTemplate) SetDefault(d MessageTemplate) {
 	}
 }
 
+// TODO: test
 func (t *MessageTemplate) Compile() error {
 	var err error
 
@@ -29,7 +30,7 @@ func (t *MessageTemplate) Compile() error {
 		t.subjectTpl, err = compileTemplate(t.Subject)
 	}
 
-	if err != nil && len(t.Message) > 0 {
+	if err == nil && len(t.Message) > 0 {
 		t.messageTpl, err = compileTemplate(t.Message)
 	}
 

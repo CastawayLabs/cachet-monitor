@@ -76,7 +76,7 @@ func GetMonitorType(t string) string {
 		return "http"
 	}
 
-	return t
+	return strings.ToLower(t)
 }
 
 func getTemplateData(monitor *AbstractMonitor) map[string]interface{} {

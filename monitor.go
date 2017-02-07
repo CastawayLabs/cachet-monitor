@@ -48,7 +48,12 @@ type AbstractMonitor struct {
 	Threshold      float32
 	ThresholdCount bool `mapstructure:"threshold_count"`
 
+	// lag / average(lagHistory) * 100 = percentage above average lag
+	// PerformanceThreshold sets the % limit above which this monitor will trigger degraded-performance
+	PerformanceThreshold float32
+
 	history        []bool
+	lagHistory     []float32
 	lastFailReason string
 	incident       *Incident
 	config         *CachetMonitor
@@ -136,6 +141,7 @@ func (mon *AbstractMonitor) ClockStop() {
 
 func (mon *AbstractMonitor) test() bool { return false }
 
+// TODO: test
 func (mon *AbstractMonitor) tick(iface MonitorInterface) {
 	reqStart := getMs()
 	up := iface.test()
@@ -161,6 +167,7 @@ func (mon *AbstractMonitor) tick(iface MonitorInterface) {
 	}
 }
 
+// TODO: test
 // AnalyseData decides if the monitor is statistically up or down and creates / resolves an incident
 func (mon *AbstractMonitor) AnalyseData() {
 	// look at the past few incidents
@@ -172,10 +179,16 @@ func (mon *AbstractMonitor) AnalyseData() {
 	}
 
 	t := (float32(numDown) / float32(len(mon.history))) * 100
-	if mon.ThresholdCount {
-		logrus.Printf("%s %d/%d down at %v", mon.Name, numDown, int(mon.Threshold), time.Now().Format(mon.config.DateFormat))
+	l := logrus.WithFields(logrus.Fields{
+		"monitor": mon.Name,
+		"time":    time.Now().Format(mon.config.DateFormat),
+	})
+	if numDown == 0 {
+		l.Printf("monitor is up")
+	} else if mon.ThresholdCount {
+		l.Printf("monitor down %d/%d", numDown, int(mon.Threshold))
 	} else {
-		logrus.Printf("%s %.2f%%/%.2f%% down at %v", mon.Name, t, mon.Threshold, time.Now().Format(mon.config.DateFormat))
+		l.Printf("monitor down %.2f%%/%.2f%%", t, mon.Threshold)
 	}
 
 	histSize := HistorySize
@@ -204,12 +217,12 @@ func (mon *AbstractMonitor) AnalyseData() {
 		}
 
 		// is down, create an incident
-		logrus.Warnf("%v: creating incident. Monitor is down: %v", mon.Name, mon.lastFailReason)
+		l.Warnf("creating incident. Monitor is down: %v", mon.lastFailReason)
 		// set investigating status
 		mon.incident.SetInvestigating()
 		// create/update incident
 		if err := mon.incident.Send(mon.config); err != nil {
-			logrus.Printf("Error sending incident: %v\n", err)
+			l.Printf("Error sending incident: %v", err)
 		}
 
 		return
@@ -220,15 +233,20 @@ func (mon *AbstractMonitor) AnalyseData() {
 		return
 	}
 
-	logrus.Warnf("Resolving incident")
-
 	// was down, created an incident, its now ok, make it resolved.
-	logrus.Printf("%v resolved downtime incident", mon.Name)
+	l.Warn("Resolving incident")
 
 	// resolve incident
-	mon.incident.Message = "\n**Resolved** - " + time.Now().Format(mon.config.DateFormat) + "\n\n - - - \n\n" + mon.incident.Message
+	tplData := getTemplateData(mon)
+	tplData["incident"] = mon.incident
+
+	subject, message := mon.Template.Fixed.Exec(tplData)
+	mon.incident.Name = subject
+	mon.incident.Message = message
 	mon.incident.SetFixed()
-	mon.incident.Send(mon.config)
+	if err := mon.incident.Send(mon.config); err != nil {
+		l.Printf("Error sending incident: %v", err)
+	}
 
 	mon.lastFailReason = ""
 	mon.incident = nil

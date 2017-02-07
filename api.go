@@ -22,6 +22,7 @@ type CachetResponse struct {
 	Data json.RawMessage `json:"data"`
 }
 
+// TODO: test
 func (api CachetAPI) Ping() error {
 	resp, _, err := api.NewRequest("GET", "/ping", nil)
 	if err != nil {
@@ -50,6 +51,7 @@ func (api CachetAPI) SendMetric(id int, lag int64) {
 	}
 }
 
+// TODO: test
 // NewRequest wraps http.NewRequest
 func (api CachetAPI) NewRequest(requestType, url string, reqBody []byte) (*http.Response, CachetResponse, error) {
 	req, err := http.NewRequest(requestType, api.URL+url, bytes.NewBuffer(reqBody))

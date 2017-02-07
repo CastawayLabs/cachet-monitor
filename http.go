@@ -8,14 +8,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/Sirupsen/logrus"
 )
 
 // Investigating template
 var defaultHTTPInvestigatingTpl = MessageTemplate{
 	Subject: `{{ .Monitor.Name }} - {{ .SystemName }}`,
-	Message: `{{ .Monitor.Name }} check **failed** - {{ .now }}
+	Message: `{{ .Monitor.Name }} check **failed** (server time: {{ .now }})
 
 {{ .FailReason }}`,
 }
@@ -42,6 +40,7 @@ type HTTPMonitor struct {
 	bodyRegexp   *regexp.Regexp
 }
 
+// TODO: test
 func (monitor *HTTPMonitor) test() bool {
 	req, err := http.NewRequest(monitor.Method, monitor.Target, nil)
 	for k, v := range monitor.Headers {
@@ -64,35 +63,33 @@ func (monitor *HTTPMonitor) test() bool {
 	defer resp.Body.Close()
 
 	if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
-		monitor.lastFailReason = "Unexpected response code: " + strconv.Itoa(resp.StatusCode) + ". Expected " + strconv.Itoa(monitor.ExpectedStatusCode)
+		monitor.lastFailReason = "Expected HTTP response status: " + strconv.Itoa(monitor.ExpectedStatusCode) + ", got: " + strconv.Itoa(resp.StatusCode)
 		return false
 	}
 
 	if monitor.bodyRegexp != nil {
-		// check body
+		// check response body
 		responseBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			monitor.lastFailReason = err.Error()
 			return false
 		}
 
-		match := monitor.bodyRegexp.Match(responseBody)
-		if !match {
-			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ". Expected to match " + monitor.ExpectedBody
+		if !monitor.bodyRegexp.Match(responseBody) {
+			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ".\nExpected to match: " + monitor.ExpectedBody
+			return false
 		}
-
-		return match
 	}
 
 	return true
 }
 
+// TODO: test
 func (mon *HTTPMonitor) Validate() []string {
 	mon.Template.Investigating.SetDefault(defaultHTTPInvestigatingTpl)
 	mon.Template.Fixed.SetDefault(defaultHTTPFixedTpl)
 
 	errs := mon.AbstractMonitor.Validate()
-	logrus.Warnf("%#v", mon.Template.Investigating)
 
 	if len(mon.ExpectedBody) > 0 {
 		exp, err := regexp.Compile(mon.ExpectedBody)

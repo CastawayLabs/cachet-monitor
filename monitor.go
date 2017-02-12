@@ -141,7 +141,6 @@ func (mon *AbstractMonitor) ClockStop() {
 
 func (mon *AbstractMonitor) test() bool { return false }
 
-// TODO: test
 func (mon *AbstractMonitor) tick(iface MonitorInterface) {
 	reqStart := getMs()
 	up := iface.test()
@@ -153,7 +152,7 @@ func (mon *AbstractMonitor) tick(iface MonitorInterface) {
 	}
 
 	if len(mon.history) == histSize-1 {
-		logrus.Warnf("%v is now saturated\n", mon.Name)
+		logrus.Warnf("%v is now saturated", mon.Name)
 	}
 	if len(mon.history) >= histSize {
 		mon.history = mon.history[len(mon.history)-(histSize-1):]

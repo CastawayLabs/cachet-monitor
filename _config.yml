@@ -1,0 +1,8 @@
+title: Cachet-monitor
+description: Distributed monitoring plugin for CachetHQ
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-architect
+
+gems:
+  - jekyll-mentions

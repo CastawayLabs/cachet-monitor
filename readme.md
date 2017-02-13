@@ -12,6 +12,8 @@
 
 ## Example Configuration
 
+**Note:** configuration can be in json or yaml format. See `example.config.*` files.
+
 ```yaml
 api:
   # cachet url
@@ -25,7 +27,7 @@ monitors:
   # http monitor example
   - name: google
     # test url
-    target: http://localhost:2000/ping
+    target: https://google.com
     # strict certificate checking for https
     strict: true
     # HTTP method

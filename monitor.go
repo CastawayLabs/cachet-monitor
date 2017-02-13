@@ -50,10 +50,10 @@ type AbstractMonitor struct {
 
 	// lag / average(lagHistory) * 100 = percentage above average lag
 	// PerformanceThreshold sets the % limit above which this monitor will trigger degraded-performance
-	PerformanceThreshold float32
+	// PerformanceThreshold float32
 
-	history        []bool
-	lagHistory     []float32
+	history []bool
+	// lagHistory     []float32
 	lastFailReason string
 	incident       *Incident
 	config         *CachetMonitor

@@ -2,10 +2,8 @@ package cachet
 
 import (
 	"net"
-
-	"strings"
-
 	"regexp"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/miekg/dns"

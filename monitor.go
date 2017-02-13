@@ -28,7 +28,7 @@ type AbstractMonitor struct {
 	Name   string
 	Target string
 
-	// (default)http, tcp, dns, icmp
+	// (default)http / dns
 	Type   string
 	Strict bool
 

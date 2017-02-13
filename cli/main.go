@@ -23,7 +23,6 @@ const usage = `cachet-monitor
 Usage:
   cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate]
   cachet-monitor -h | --help | --version
-  cachet-monitor print-config
 
 Arguments:
   PATH     path to config.json
@@ -39,7 +38,6 @@ Options:
   -h --help                      Show this screen.
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
-  print-config                   Print example configuration
   
 Environment varaibles:
   CACHET_API      override API url from configuration

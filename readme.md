@@ -12,7 +12,7 @@
 
 ## Example Configuration
 
-**Note:** configuration can be in json or yaml format. See `example.config.*` files.
+**Note:** configuration can be in json or yaml format. [`example.config.json`](https://github.com/CastawayLabs/cachet-monitor/blob/master/example.config.json), [`example.config.yaml`](https://github.com/CastawayLabs/cachet-monitor/blob/master/example.config.yml) files.
 
 ```yaml
 api:
@@ -94,7 +94,6 @@ pro tip: run in background using `nohup cachet-monitor 2>&1 > /var/log/cachet-mo
 Usage:
   cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate]
   cachet-monitor -h | --help | --version
-  cachet-monitor print-config
 
 Arguments:
   PATH     path to config.json
@@ -110,7 +109,6 @@ Options:
   -h --help                      Show this screen.
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
-  print-config                   Print example configuration
   
 Environment varaibles:
   CACHET_API      override API url from configuration
@@ -120,7 +118,7 @@ Environment varaibles:
 
 ## Templates
 
-This package makes use of [`text/template`](https://godoc.org/text/template).
+This package makes use of [`text/template`](https://godoc.org/text/template). [Default HTTP template](https://github.com/CastawayLabs/cachet-monitor/blob/master/http.go#L14)
 
 The following variables are available:
 

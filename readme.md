@@ -39,6 +39,7 @@ monitors:
     metric_id: 4
 
     # custom templates (see readme for details)
+    # leave empty for defaults
     template:
       investigating:
         subject: "{{ .Monitor.Name }} - {{ .SystemName }}"

@@ -153,6 +153,15 @@ When using `cachet-monitor` as a package in another program, you should follow w
 
 [API Documentation](https://godoc.org/github.com/CastawayLabs/cachet-monitor)
 
+# Contributions welcome
+
+We'll happily accept contributions for the following (non exhaustive list).
+
+- Implement ICMP check
+- Implement TCP check
+- Any bug fixes / code improvements
+- Test cases
+
 ## License
 
 MIT License

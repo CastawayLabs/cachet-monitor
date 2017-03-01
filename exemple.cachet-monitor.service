@@ -1,0 +1,20 @@
+[Unit]
+Description=Cachet Monitor
+After=syslog.target
+After=network.target
+#After=mysqld.service
+#After=postgresql.service
+#After=memcached.service
+#After=redis.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root
+ExecStart=/root/cachet-monitor -c /etc/cachet-monitor.yaml
+Restart=always
+Environment=USER=root HOME=/root
+
+[Install]
+WantedBy=multi-user.target

@@ -117,6 +117,14 @@ Environment varaibles:
   CACHET_DEV      set to enable dev logging
 ```
 
+## Init script
+
+If your system is running systemd (like Debian, Ubuntu 16.04, Fedora or Archlinux) you can use the provided example file: [example.cachet-monitor.service](cachet-monitor/example.cachet-monitor.service).
+
+1. Simply put it in the right place with `cp example.cachet-monitor.service /etc/systemd/system/cachet-monitor.service`
+2. Then do a `systemctl daemon-reload` in your terminal to update Systemd configuration
+3. Finally you can start cachet-monitor on every startup with `systemctl enable cachet-monitor.service`! 👍
+
 ## Templates
 
 This package makes use of [`text/template`](https://godoc.org/text/template). [Default HTTP template](https://github.com/CastawayLabs/cachet-monitor/blob/master/http.go#L14)

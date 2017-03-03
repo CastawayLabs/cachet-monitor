@@ -119,7 +119,7 @@ Environment varaibles:
 
 ## Init script
 
-If your system is running systemd (like Debian, Ubuntu 16.04, Fedora or Archlinux) you can use the provided example file: [example.cachet-monitor.service](cachet-monitor/example.cachet-monitor.service).
+If your system is running systemd (like Debian, Ubuntu 16.04, Fedora or Archlinux) you can use the provided example file: [example.cachet-monitor.service](https://github.com/CastawayLabs/cachet-monitor/blob/master/example.cachet-monitor.service).
 
 1. Simply put it in the right place with `cp example.cachet-monitor.service /etc/systemd/system/cachet-monitor.service`
 2. Then do a `systemctl daemon-reload` in your terminal to update Systemd configuration

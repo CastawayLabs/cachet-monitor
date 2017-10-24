@@ -131,12 +131,12 @@ This package makes use of [`text/template`](https://godoc.org/text/template). [D
 
 The following variables are available:
 
-| Root objects  |
-| ------------- | -----------------
-| `.SystemName` | system name
-| `.API`        | `api` object from configuration
-| `.Monitor`    | `monitor` object from configuration
-| `.now`        | formatted date string
+| Root objects  | Description                         |
+| ------------- | ------------------------------------|
+| `.SystemName` | system name                         | 
+| `.API`        | `api` object from configuration     |
+| `.Monitor`    | `monitor` object from configuration |
+| `.now`        | formatted date string               |
 
 | Monitor variables  |
 | ------------------ |

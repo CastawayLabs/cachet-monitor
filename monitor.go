@@ -120,7 +120,7 @@ func (mon *AbstractMonitor) ClockStart(cfg *CachetMonitor, iface MonitorInterfac
 
 	if cfg.Restarted {
 		initialIncident, err := mon.Get(cfg)
-		if err != nil{
+		if err != nil {
 			logrus.Warn("could not fetch initial incident: %v", err)
 		}
 		if initialIncident != nil {

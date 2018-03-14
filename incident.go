@@ -30,7 +30,7 @@ func (mon *AbstractMonitor) Get(cfg *CachetMonitor) (*Incident, error) {
 	if err != nil {
 		return nil, err
 	}
-	data := make([]Incident,0)
+	data := make([]Incident, 0)
 	if err := json.Unmarshal(body.Data, &data); err != nil {
 		return nil, fmt.Errorf("Cannot parse incident body: %v, %v", err, string(body.Data))
 	}
@@ -47,7 +47,6 @@ func (mon *AbstractMonitor) Get(cfg *CachetMonitor) (*Incident, error) {
 	return &openIncidents[0], nil
 
 }
-
 
 // Send - Create or Update incident
 func (incident *Incident) Send(cfg *CachetMonitor) error {

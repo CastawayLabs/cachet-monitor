@@ -38,6 +38,7 @@ Options:
   -h --help                      Show this screen.
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
+  --restarted                    Get open incidents before start monitoring (if monitor died or restarted)
   
 Environment varaibles:
   CACHET_API      override API url from configuration
@@ -56,6 +57,10 @@ func main() {
 
 	if immediate, ok := arguments["--immediate"]; ok {
 		cfg.Immediate = immediate.(bool)
+	}
+
+	if restarted, ok := arguments["--restarted"]; ok {
+		cfg.Restarted = restarted.(bool)
 	}
 
 	if name := arguments["--name"]; name != nil {

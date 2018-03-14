@@ -17,6 +17,7 @@ type CachetMonitor struct {
 
 	Monitors  []MonitorInterface `json:"-" yaml:"-"`
 	Immediate bool               `json:"-" yaml:"-"`
+	Restarted bool               `json:"-" yaml:"-"`
 }
 
 // Validate configuration

@@ -86,10 +86,11 @@ monitors:
 ## Installation
 
 1. Download binary from [release page](https://github.com/CastawayLabs/cachet-monitor/releases)
-2. Create a configuration
-3. `cachet-monitor -c /etc/cachet-monitor.yaml`
+2. Add the binary to an executable path (/usr/bin, etc.)
+3. Create a configuration following provided examples
+4. `cachet-monitor -c /etc/cachet-monitor.yaml`
 
-pro tip: run in background using `nohup cachet-monitor 2>&1 > /var/log/cachet-monitor.log &`
+pro tip: run in background using `nohup cachet-monitor 2>&1 > /var/log/cachet-monitor.log &`, or use a tmux/screen session
 
 ```
 Usage:
@@ -119,7 +120,7 @@ Environment varaibles:
 
 ## Init script
 
-If your system is running systemd (like Debian, Ubuntu 16.04, Fedora or Archlinux) you can use the provided example file: [example.cachet-monitor.service](https://github.com/CastawayLabs/cachet-monitor/blob/master/example.cachet-monitor.service).
+If your system is running systemd (like Debian, Ubuntu 16.04, Fedora, RHEL7, or Archlinux) you can use the provided example file: [example.cachet-monitor.service](https://github.com/CastawayLabs/cachet-monitor/blob/master/example.cachet-monitor.service).
 
 1. Simply put it in the right place with `cp example.cachet-monitor.service /etc/systemd/system/cachet-monitor.service`
 2. Then do a `systemctl daemon-reload` in your terminal to update Systemd configuration
@@ -170,27 +171,3 @@ We'll happily accept contributions for the following (non exhaustive list).
 - Implement TCP check
 - Any bug fixes / code improvements
 - Test cases
-
-## License
-
-MIT License
-
-Copyright (c) 2016 Castaway Labs LLC
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.

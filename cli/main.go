@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
-	cachet "github.com/castawaylabs/cachet-monitor"
+	cachet "github.com/aberfeldy/cachet-monitor"
 	docopt "github.com/docopt/docopt-go"
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
@@ -38,7 +38,8 @@ Options:
   -h --help                      Show this screen.
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
-  
+  --restarted                    Get open incidents before start monitoring (if monitor died or restarted)
+
 Environment varaibles:
   CACHET_API      override API url from configuration
   CACHET_TOKEN    override API token from configuration
@@ -56,6 +57,10 @@ func main() {
 
 	if immediate, ok := arguments["--immediate"]; ok {
 		cfg.Immediate = immediate.(bool)
+	}
+
+	if restarted, ok := arguments["--restarted"]; ok{
+		cfg.Restarted = restarted.(bool)
 	}
 
 	if name := arguments["--name"]; name != nil {

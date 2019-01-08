@@ -111,6 +111,7 @@ Options:
   -h --help                      Show this screen.
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
+  --restarted                    Get open incidents before start monitoring (if monitor died or restarted)
   
 Environment varaibles:
   CACHET_API      override API url from configuration

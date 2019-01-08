@@ -44,8 +44,10 @@ Environment varaibles:
   CACHET_TOKEN    override API token from configuration
   CACHET_DEV      set to enable dev logging`
 
+var version string
+
 func main() {
-	arguments, _ := docopt.Parse(usage, nil, true, "cachet-monitor", false)
+	arguments, _ := docopt.Parse(usage, nil, true, version, false)
 
 	cfg, err := getConfiguration(arguments["--config"].(string))
 	if err != nil {

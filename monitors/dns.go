@@ -1,13 +1,32 @@
-package cachet
+package monitors
 
 import (
+	"errors"
 	"net"
 	"regexp"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/miekg/dns"
+	"github.com/sirupsen/logrus"
 )
+
+// Investigating template
+var defaultDNSInvestigatingTpl = MessageTemplate{
+	Subject: `{{ .Monitor.Name }} - {{ .SystemName }}`,
+	Message: `{{ .Monitor.Name }} DNS check **failed** (server time: {{ .now }})
+
+{{ .FailReason }}`,
+}
+
+// Fixed template
+var defaultDNSFixedTpl = MessageTemplate{
+	Subject: `{{ .Monitor.Name }} - {{ .SystemName }}`,
+	Message: `**Resolved** - {{ .now }}
+
+- - -
+
+{{ .incident.Message }}`,
+}
 
 type DNSAnswer struct {
 	Regex  string
@@ -28,8 +47,11 @@ type DNSMonitor struct {
 	Answers []DNSAnswer
 }
 
-func (monitor *DNSMonitor) Validate() []string {
-	errs := monitor.AbstractMonitor.Validate()
+func (monitor *DNSMonitor) Validate(validate backendValidateFunc) []string {
+	monitor.Template.Investigating.SetDefault(defaultDNSInvestigatingTpl)
+	monitor.Template.Fixed.SetDefault(defaultDNSFixedTpl)
+
+	errs := monitor.AbstractMonitor.Validate(validate)
 
 	if len(monitor.DNS) == 0 {
 		config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
@@ -61,7 +83,7 @@ func (monitor *DNSMonitor) Validate() []string {
 	return errs
 }
 
-func (monitor *DNSMonitor) test() bool {
+func (monitor *DNSMonitor) test() (bool, []error) {
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(monitor.Target), monitor.question)
 	m.RecursionDesired = true
@@ -70,11 +92,11 @@ func (monitor *DNSMonitor) test() bool {
 	r, _, err := c.Exchange(m, monitor.DNS)
 	if err != nil {
 		logrus.Warnf("DNS error: %v", err)
-		return false
+		return false, []error{err}
 	}
 
 	if r.Rcode != dns.RcodeSuccess {
-		return false
+		return false, []error{errors.New("Invalid status code returned")}
 	}
 
 	for _, check := range monitor.Answers {
@@ -88,11 +110,11 @@ func (monitor *DNSMonitor) test() bool {
 
 		if !found {
 			logrus.Warnf("DNS check failed: %v. Not found in any of %v", check, r.Answer)
-			return false
+			return false, []error{errors.New("Record not found")}
 		}
 	}
 
-	return true
+	return true, nil
 }
 
 func findDNSType(t string) uint16 {

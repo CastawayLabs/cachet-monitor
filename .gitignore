@@ -1,3 +1,5 @@
 /config.yml
 /config.json
 examples/
+vendor/
+cachet-monitor

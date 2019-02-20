@@ -1,9 +1,14 @@
-package cachet
+package monitors
 
 import (
 	"bytes"
 	"text/template"
 )
+
+type MonitorTemplates struct {
+	Investigating MessageTemplate
+	Fixed         MessageTemplate
+}
 
 type MessageTemplate struct {
 	Subject string `json:"subject"`

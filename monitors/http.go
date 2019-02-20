@@ -1,7 +1,8 @@
-package cachet
+package monitors
 
 import (
 	"crypto/tls"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -13,7 +14,7 @@ import (
 // Investigating template
 var defaultHTTPInvestigatingTpl = MessageTemplate{
 	Subject: `{{ .Monitor.Name }} - {{ .SystemName }}`,
-	Message: `{{ .Monitor.Name }} check **failed** (server time: {{ .now }})
+	Message: `{{ .Monitor.Name }} HTTP check **failed** (server time: {{ .now }})
 
 {{ .FailReason }}`,
 }
@@ -41,7 +42,7 @@ type HTTPMonitor struct {
 }
 
 // TODO: test
-func (monitor *HTTPMonitor) test() bool {
+func (monitor *HTTPMonitor) test() (bool, []error) {
 	req, err := http.NewRequest(monitor.Method, monitor.Target, nil)
 	for k, v := range monitor.Headers {
 		req.Header.Add(k, v)
@@ -56,40 +57,38 @@ func (monitor *HTTPMonitor) test() bool {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		monitor.lastFailReason = err.Error()
-		return false
+		return false, []error{err}
 	}
 
 	defer resp.Body.Close()
 
 	if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
-		monitor.lastFailReason = "Expected HTTP response status: " + strconv.Itoa(monitor.ExpectedStatusCode) + ", got: " + strconv.Itoa(resp.StatusCode)
-		return false
+		fail := "Expected HTTP response status: " + strconv.Itoa(monitor.ExpectedStatusCode) + ", got: " + strconv.Itoa(resp.StatusCode)
+		return false, []error{errors.New(fail)}
 	}
 
 	if monitor.bodyRegexp != nil {
 		// check response body
 		responseBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			monitor.lastFailReason = err.Error()
-			return false
+			return false, []error{err}
 		}
 
 		if !monitor.bodyRegexp.Match(responseBody) {
-			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ".\nExpected to match: " + monitor.ExpectedBody
-			return false
+			fail := "Unexpected body: " + string(responseBody) + ".\nExpected to match: " + monitor.ExpectedBody
+			return false, []error{errors.New(fail)}
 		}
 	}
 
-	return true
+	return true, nil
 }
 
 // TODO: test
-func (mon *HTTPMonitor) Validate() []string {
+func (mon *HTTPMonitor) Validate(validate backendValidateFunc) []string {
 	mon.Template.Investigating.SetDefault(defaultHTTPInvestigatingTpl)
 	mon.Template.Fixed.SetDefault(defaultHTTPFixedTpl)
 
-	errs := mon.AbstractMonitor.Validate()
+	errs := mon.AbstractMonitor.Validate(validate)
 
 	if len(mon.ExpectedBody) > 0 {
 		exp, err := regexp.Compile(mon.ExpectedBody)

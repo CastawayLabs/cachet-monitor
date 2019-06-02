@@ -49,7 +49,9 @@ func (monitor *HTTPMonitor) test() (bool, []error) {
 	}
 
 	transport := http.DefaultTransport.(*http.Transport)
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: monitor.Strict == false}
+	transport.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: monitor.Strict == false,
+	}
 	client := &http.Client{
 		Timeout:   time.Duration(monitor.Timeout * time.Second),
 		Transport: transport,

@@ -103,9 +103,7 @@ func (api CachetBackend) NewRequest(requestType, url string, reqBody []byte) (*h
 	defer res.Body.Close()
 	defer req.Body.Close()
 
-	var body struct {
-		Data json.RawMessage `json:"data"`
-	}
+	var body CachetResponse
 	err = json.NewDecoder(res.Body).Decode(&body)
 
 	return res, body, err
@@ -248,7 +246,21 @@ func (api CachetBackend) Tick(monitor monitors.MonitorInterface, status monitors
 }
 
 func (api CachetBackend) getComponent(componentID int) (*Component, error) {
-	return nil, nil
+	resp, body, err := api.NewRequest("GET", "/components/"+strconv.Itoa(componentID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var data *Component
+	if err := json.Unmarshal(body.(CachetResponse).Data, &data); err != nil {
+		return nil, fmt.Errorf("Cannot decode component: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Could not get component! %v", err)
+	}
+
+	return data, nil
 }
 
 func (api CachetBackend) findIncident(componentID int) (*Incident, error) {
@@ -270,7 +282,7 @@ func (api CachetBackend) findIncident(componentID int) (*Incident, error) {
 }
 
 func (api CachetBackend) findIncidents(componentID int, status int) ([]*Incident, error) {
-	resp, body, err := api.NewRequest("GET", "/incidents?component_id="+strconv.Itoa(componentID)+"&status="+strconv.Itoa(status), nil)
+	resp, body, err := api.NewRequest("GET", "/incidents?component_Id="+strconv.Itoa(componentID)+"&status="+strconv.Itoa(status), nil)
 	if err != nil {
 		return nil, err
 	}

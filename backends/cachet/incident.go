@@ -10,10 +10,6 @@ import (
 	"github.com/castawaylabs/cachet-monitor/monitors"
 )
 
-// "encoding/json"
-// "fmt"
-// "strconv"
-
 // "github.com/sirupsen/logrus"
 
 // Incident Cachet data model

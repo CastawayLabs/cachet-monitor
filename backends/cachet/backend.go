@@ -287,6 +287,10 @@ func (api CachetBackend) findIncidents(componentID int, status int) ([]*Incident
 		return nil, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GET /incidents returned %d", resp.StatusCode)
+	}
+
 	var data []*Incident
 	if err := json.Unmarshal(body.(CachetResponse).Data, &data); err != nil {
 		return nil, fmt.Errorf("Cannot find incidents: %v", err)

@@ -2,7 +2,6 @@ package cachet
 
 import (
 	"crypto/tls"
-	"github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"regexp"

@@ -39,7 +39,7 @@ Options:
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
   
-Environment varaibles:
+Environment variables:
   CACHET_API      override API url from configuration
   CACHET_TOKEN    override API token from configuration
   CACHET_DEV      set to enable dev logging`

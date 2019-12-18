@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	cachet "github.com/macchiang/cachet-monitor"
 	docopt "github.com/docopt/docopt-go"
 	"github.com/mitchellh/mapstructure"

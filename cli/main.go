@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
-	cachet "github.com/castawaylabs/cachet-monitor"
+	cachet "github.com/macchiang/cachet-monitor"
 	docopt "github.com/docopt/docopt-go"
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
@@ -38,7 +38,7 @@ Options:
   -h --help                      Show this screen.
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
-  
+
 Environment varaibles:
   CACHET_API      override API url from configuration
   CACHET_TOKEN    override API token from configuration

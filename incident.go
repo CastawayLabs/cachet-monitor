@@ -67,7 +67,10 @@ func (incident *Incident) Send(cfg *CachetMonitor) error {
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Could not create/update incident!")
 	}
-
+	// send slack message
+	if cfg.SlackWebhook !="" {
+		sendSlack(cfg)
+	}
 	return nil
 }
 
@@ -109,4 +112,31 @@ func (incident *Incident) SetWatching() {
 // SetFixed sets status to Fixed
 func (incident *Incident) SetFixed() {
 	incident.Status = 4
+}
+
+// Send slack message
+func (incident *Incident) sendSlack(cfg *CachetMonitor) {
+	color:="#bf1932" //red
+	if incident.ComponentStatus == 1 {
+
+		color="#36a64f" //green
+	}
+	slack := Slack{
+		WebhookUrl: cfg.SlackWebhook
+		Attachments: []Attachments{
+			Attachments{
+				Fallback:   incident.Name,
+				Color:      color,
+				Title:      incident.Name,
+				TitleLink:  "https://status.easyship.com",
+				Text:       incident.Message,
+				Footer:     "Cachet Monitor",
+				FooterIcon: "https://i.imgur.com/spck1w6.png",
+				Ts:         time.Now().Unix(),
+			},
+		}}
+	err := slack.SendSlackNotification()
+	if err != nil {
+		fmt.Errorf(err)
+	}
 }

@@ -39,7 +39,7 @@ Options:
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
   --restarted                    Get open incidents before start monitoring (if monitor died or restarted)
-
+  
 Environment varaibles:
   CACHET_API      override API url from configuration
   CACHET_TOKEN    override API token from configuration
@@ -184,6 +184,10 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 			var s cachet.DNSMonitor
 			err = mapstructure.Decode(rawMonitor, &s)
 			t = &s
+    case "tcp":
+      var s cachet.TCPMonitor
+      err = mapstructure.Decode(rawMonitor, &s)
+      t = &s
 		default:
 			logrus.Errorf("Invalid monitor type (index: %d) %v", index, monType)
 			continue

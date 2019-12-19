@@ -8,53 +8,11 @@
   "slack_webhook": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
   "monitors": [
     {
-      "name": "google",
-      "target": "https://google.com",
-      "strict": true,
-      "method": "POST",
-      "component_id": 1,
-      "metric_id": 4,
-      "template": {
-        "investigating": {
-          "subject": "{{ .Monitor.Name }} - {{ .SystemName }}",
-          "message": "{{ .Monitor.Name }} check **failed** (server time: {{ .now }})\n\n{{ .FailReason }}"
-        },
-        "fixed": {
-          "subject": "I HAVE BEEN FIXED"
-        }
-      },
-      "interval": 1,
-      "timeout": 1,
-      "threshold": 80,
-      "headers": {
-        "Authorization": "Basic <hash>"
-      },
-      "expected_status_code": 200,
-      "expected_body": "P.*NG"
-    },
-    {
-      "name": "dns",
-      "target": "matej.me.",
-      "question": "mx",
-      "type": "dns",
-      "component_id": 2,
-      "interval": 1,
-      "timeout": 1,
-      "dns": "8.8.4.4:53",
-      "answers": [
-        {
-          "regex": "[1-9] alt[1-9].aspmx.l.google.com."
-        },
-        {
-          "exact": "10 aspmx2.googlemail.com."
-        },
-        {
-          "exact": "1 aspmx.l.google.com."
-        },
-        {
-          "exact": "10 aspmx3.googlemail.com."
-        }
-      ]
+      "name": "IN-Ulm IRC",
+      "target": "irc.in-ulm.de",
+      "type": "tcp",
+      "port": "6660",
+      "component_id": 4
     }
   ]
 }

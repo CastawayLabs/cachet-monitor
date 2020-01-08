@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Incident Cachet data model

@@ -5,6 +5,7 @@
     "insecure": false
   },
   "date_format": "02/01/2006 15:04:05 MST",
+  "slack_webhook": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
   "monitors": [
     {
       "name": "google",

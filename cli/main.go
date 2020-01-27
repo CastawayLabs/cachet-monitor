@@ -21,7 +21,7 @@ import (
 const usage = `cachet-monitor
 
 Usage:
-  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate]
+  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate] [--restarted]
   cachet-monitor -h | --help | --version
 
 Arguments:

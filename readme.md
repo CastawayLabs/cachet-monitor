@@ -23,6 +23,7 @@ api:
   insecure: false
 # https://golang.org/src/time/format.go#L57
 date_format: 02/01/2006 15:04:05 MST
+slack_webhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 monitors:
   # http monitor example
   - name: google
@@ -32,7 +33,7 @@ monitors:
     strict: true
     # HTTP method
     method: POST
-    
+
     # set to update component (either component_id or metric_id are required)
     component_id: 1
     # set to post lag to cachet metric (graph)
@@ -46,7 +47,7 @@ monitors:
         message: "{{ .Monitor.Name }} check **failed** (server time: {{ .now }})\n\n{{ .FailReason }}"
       fixed:
         subject: "I HAVE BEEN FIXED"
-    
+
     # seconds between checks
     interval: 1
     # seconds for timeout
@@ -112,7 +113,7 @@ Options:
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
   --restarted                    Get open incidents before start monitoring (if monitor died or restarted)
-  
+
 Environment varaibles:
   CACHET_API      override API url from configuration
   CACHET_TOKEN    override API token from configuration
@@ -135,7 +136,7 @@ The following variables are available:
 
 | Root objects  | Description                         |
 | ------------- | ------------------------------------|
-| `.SystemName` | system name                         | 
+| `.SystemName` | system name                         |
 | `.API`        | `api` object from configuration     |
 | `.Monitor`    | `monitor` object from configuration |
 | `.now`        | formatted date string               |
@@ -172,3 +173,12 @@ We'll happily accept contributions for the following (non exhaustive list).
 - Implement TCP check
 - Any bug fixes / code improvements
 - Test cases
+
+# Build on MacOS
+1. Read and install with https://ahmadawais.com/install-go-lang-on-macos-with-homebrew/
+
+2. Test in console with `go get -u` and `go build cli/main.go`
+
+3. Run `./go-executable-build.sh cli/main.go`
+
+4. `mv cli/main.go-linux-amd64 cachet-monitor-linux-amd64`

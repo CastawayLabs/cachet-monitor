@@ -4,8 +4,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815 h1:bWDMxwH3px2JBh6AyO7hdCn/PkvCZXii8TGj7sbtEbQ=
 github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3ebgob9U8Nd0kOddGdZWjyMGR8Wziv+TBNwSE=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
-github.com/macchiang/cachet-monitor v1.1.0 h1:um5ymKBF11Dau8yKCAg82HS6F/og0tODiIOLOdwnnzc=
-github.com/macchiang/cachet-monitor v1.1.0/go.mod h1:cNiyqtsa4pEzPn0v2tlf6oejVg4mfUts2qNaxFnCDeE=
+github.com/milkinteractive/cachet-monitor v1.1.0 h1:IyX/gYVDfSEwO4kbNMs9W4hLt5FXIV/ig/4c1nFVlfU=
+github.com/milkinteractive/cachet-monitor v1.1.0/go.mod h1:Y+g0f0C8fAj2ub5RhfQgh/oU85pYx6QbL/56WMFkmVo=
 github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

@@ -12,6 +12,7 @@ import (
 type CachetMonitor struct {
 	SystemName  string                   `json:"system_name" yaml:"system_name"`
 	DateFormat  string                   `json:"date_format" yaml:"date_format"`
+	SlackWebhook string                  `json:"slack_webhook" yaml:"slack_webhook"`
 	API         CachetAPI                `json:"api"`
 	RawMonitors []map[string]interface{} `json:"monitors" yaml:"monitors"`
 

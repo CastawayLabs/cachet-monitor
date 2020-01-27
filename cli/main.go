@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
-	cachet "github.com/castawaylabs/cachet-monitor"
+	cachet "github.com/macchiang/cachet-monitor"
 	docopt "github.com/docopt/docopt-go"
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
@@ -39,7 +39,7 @@ Options:
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
   --restarted                    Get open incidents before start monitoring (if monitor died or restarted)
-  
+
 Environment varaibles:
   CACHET_API      override API url from configuration
   CACHET_TOKEN    override API token from configuration

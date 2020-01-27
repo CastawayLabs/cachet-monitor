@@ -89,3 +89,9 @@ func getTemplateData(monitor *AbstractMonitor) map[string]interface{} {
 		"now":        time.Now().Format(monitor.config.DateFormat),
 	}
 }
+
+func MainUrl(cfg *CachetMonitor) string {
+	var url = cfg.API.URL
+	var index = strings.Index(url,"/api/")
+	return url[0:index]
+}

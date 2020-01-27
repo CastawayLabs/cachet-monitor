@@ -10,7 +10,7 @@ import (
 )
 
 type Slack struct {
-	WebhookUrl  string
+	WebhookURL  string
 	Attachments []Attachments `json:"attachments"`
 }
 type Fields struct {
@@ -46,7 +46,7 @@ func test() {
 				Ts:         time.Now().Unix(),
 			},
 		}}
-	slack.WebhookUrl = "https://hooks.slack.com/services/0000000/00000000/xxxxxxxxxxxxxxxxxxx"
+	slack.WebhookURL = "https://hooks.slack.com/services/0000000/00000000/xxxxxxxxxxxxxxxxxxx"
 	err := slack.SendSlackNotification()
 	if err != nil {
 		log.Fatal(err)
@@ -58,7 +58,7 @@ func test() {
 func (slack *Slack) SendSlackNotification() error {
 
 	slackBody, _ := json.Marshal(slack)
-	req, err := http.NewRequest(http.MethodPost, slack.WebhookUrl, bytes.NewBuffer(slackBody))
+	req, err := http.NewRequest(http.MethodPost, slack.WebhookURL, bytes.NewBuffer(slackBody))
 	if err != nil {
 		return err
 	}

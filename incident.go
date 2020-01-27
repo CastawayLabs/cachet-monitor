@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -94,8 +95,8 @@ func (incident *Incident) Send(cfg *CachetMonitor) error {
 		return fmt.Errorf("Could not create/update incident")
 	}
 	// send slack message
-	if cfg.SlackWebhook !="" {
-		sendSlack(cfg)
+	if cfg.SlackWebhook != "" {
+		incident.sendSlack(cfg)
 	}
 	return nil
 }
@@ -111,7 +112,7 @@ func (incident *Incident) GetComponentStatus(cfg *CachetMonitor) (int, error) {
 	}
 
 	var data struct {
-		Status int `json:"status,string"`
+		Status int `json:"status"`
 	}
 	if err := json.Unmarshal(body.Data, &data); err != nil {
 		return 0, fmt.Errorf("Cannot parse component body: %v. Err = %v", string(body.Data), err)
@@ -142,19 +143,19 @@ func (incident *Incident) SetFixed() {
 
 // Send slack message
 func (incident *Incident) sendSlack(cfg *CachetMonitor) {
-	color:="#bf1932" //red
+	color := "#bf1932" //red
 	if incident.ComponentStatus == 1 {
-
-		color="#36a64f" //green
+		color = "#36a64f" //green
 	}
+	titleLink := MainUrl(cfg) + "/dashboard/incidents/" + strconv.Itoa(incident.ID)
 	slack := Slack{
-		WebhookUrl: cfg.SlackWebhook
+		WebhookURL: cfg.SlackWebhook,
 		Attachments: []Attachments{
 			Attachments{
 				Fallback:   incident.Name,
 				Color:      color,
 				Title:      incident.Name,
-				TitleLink:  "https://status.easyship.com",
+				TitleLink:  titleLink,
 				Text:       incident.Message,
 				Footer:     "Cachet Monitor",
 				FooterIcon: "https://i.imgur.com/spck1w6.png",
@@ -163,6 +164,6 @@ func (incident *Incident) sendSlack(cfg *CachetMonitor) {
 		}}
 	err := slack.SendSlackNotification()
 	if err != nil {
-		fmt.Errorf(err)
+		fmt.Errorf("Cannot send slack message. Err = %v", err)
 	}
 }

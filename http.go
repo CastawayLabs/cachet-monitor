@@ -34,6 +34,7 @@ type HTTPMonitor struct {
 	Method             string
 	ExpectedStatusCode int `mapstructure:"expected_status_code"`
 	Headers            map[string]string
+	Auth               map[string]string
 
 	// compiled to Regexp
 	ExpectedBody string `mapstructure:"expected_body"`
@@ -45,6 +46,10 @@ func (monitor *HTTPMonitor) test() bool {
 	req, err := http.NewRequest(monitor.Method, monitor.Target, nil)
 	for k, v := range monitor.Headers {
 		req.Header.Add(k, v)
+	}
+
+	if monitor.Auth != nil {
+		req.SetBasicAuth(monitor.Auth["username"], monitor.Auth["password"])
 	}
 
 	transport := http.DefaultTransport.(*http.Transport)

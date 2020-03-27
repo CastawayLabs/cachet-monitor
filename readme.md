@@ -82,6 +82,12 @@ monitors:
       - exact: 10 aspmx2.googlemail.com.
       - exact: 1 aspmx.l.google.com.
       - exact: 10 aspmx3.googlemail.com.
+  # example tcp
+  - name: smtpnine
+    target: smtp.nine.ch
+    type: tcp
+    port: 25
+    component_id: 4
 ```
 
 ## Installation

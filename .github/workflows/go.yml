@@ -76,10 +76,10 @@ jobs:
       run: GOOS=openbsd GOARCH=arm go build -v -o build/cachet_monitor_openbsd_arm cli/main.go
 
     - name: Build Windows 386
-      run: GOOS=windows GOARCH=386 go build -v -o build/cachet_monitor_windows_386 cli/main.go
+      run: GOOS=windows GOARCH=386 go build -v -o build/cachet_monitor_windows_386.exe cli/main.go
 
     - name: Build Windows amd64
-      run: GOOS=windows GOARCH=amd64 go build -v -o build/cachet_monitor_windows_amd64 cli/main.go
+      run: GOOS=windows GOARCH=amd64 go build -v -o build/cachet_monitor_windows_amd64.exe cli/main.go
 
     - name: Test
       run: go test -v .
@@ -178,10 +178,10 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: cachet_monitor_windows_386
-        path: build/cachet_monitor_windows_386
+        path: build/cachet_monitor_windows_386.exe
 
     - name: Upload cachet_monitor_windows_amd64
       uses: actions/upload-artifact@v2
       with:
         name: cachet_monitor_windows_amd64
-        path: build/cachet_monitor_windows_amd64
+        path: build/cachet_monitor_windows_amd64.exe

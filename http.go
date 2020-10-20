@@ -44,6 +44,7 @@ type HTTPMonitor struct {
 	// data
 	Data string `mapstructure:"data"`
 	ExpectedMd5Sum string `mapstructure:"expected_md5sum"`
+	ExpectedLength int `mapstructure:"expected_length"`
 }
 
 // TODO: test
@@ -88,21 +89,28 @@ func (monitor *HTTPMonitor) test() bool {
 
 	// check response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseLength := len(string(responseBody))
 	fmt.Println("Response: ", string(responseBody))
+	fmt.Println("Response len: ", responseLength)
 	if err != nil {
 		monitor.lastFailReason = err.Error()
 		fmt.Println(err.Error())
 		return false
 	}
+
+	if monitor.ExpectedLength > 0 && responseLength != monitor.ExpectedLength {
+		monitor.lastFailReason = "Expected response body length: " + strconv.Itoa(monitor.ExpectedLength) + ", got: " + strconv.Itoa(responseLength)
+		return false
+	}
+
 	if monitor.ExpectedMd5Sum != "" {
 		sum := fmt.Sprintf("%x", (md5.Sum(responseBody)))
 		fmt.Println("Calculated sum", sum)
 		fmt.Println("Expected sum", monitor.ExpectedMd5Sum)
-		equalMd5 := strings.Compare(sum, monitor.ExpectedMd5Sum) == 0
-		if !equalMd5 {
-			monitor.lastFailReason = "Expected Md5 sum: " + monitor.ExpectedMd5Sum + ", got: " + sum
+		if strings.Compare(sum, monitor.ExpectedMd5Sum) != 0 {
+			monitor.lastFailReason = "Expected respsone body MD5 checksum: " + monitor.ExpectedMd5Sum + ", got: " + sum
+			return false
 		}
-		return equalMd5
 	}
 
 	if monitor.bodyRegexp != nil {

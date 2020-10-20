@@ -54,7 +54,8 @@ monitors:
     timeout: 1
     # If % of downtime is over this threshold, open an incident
     threshold: 80
-
+    # Raw data to transmit
+    data: "{\"key\":\"value\"}"
     # custom HTTP headers
     headers:
       Authorization: Basic <hash>
@@ -62,6 +63,10 @@ monitors:
     expected_status_code: 200
     # regex to match body
     expected_body: "P.*NG"
+    # expected body response md5 checksum
+    expected_md5sum: "<md5sum>"
+    # expected body response length
+    expected_length: 12345
   # dns monitor example
   - name: dns
     # fqdn

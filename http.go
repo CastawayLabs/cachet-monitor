@@ -1,6 +1,7 @@
 package cachet
 
 import (
+	"bytes"
 	"crypto/tls"
 	"io/ioutil"
 	"net/http"
@@ -38,11 +39,19 @@ type HTTPMonitor struct {
 	// compiled to Regexp
 	ExpectedBody string `mapstructure:"expected_body"`
 	bodyRegexp   *regexp.Regexp
+
+	// JSON data
+	Data string `mapstructure:"data"`
 }
 
 // TODO: test
 func (monitor *HTTPMonitor) test() bool {
-	req, err := http.NewRequest(monitor.Method, monitor.Target, nil)
+	var dataBuffer *bytes.Buffer = nil
+	if monitor.Data != "" {
+		dataBuffer = bytes.NewBuffer([]byte(monitor.Data))
+	}
+
+	req, err := http.NewRequest(monitor.Method, monitor.Target, dataBuffer)
 	for k, v := range monitor.Headers {
 		req.Header.Add(k, v)
 	}

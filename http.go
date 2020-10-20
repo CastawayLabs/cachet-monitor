@@ -1,7 +1,9 @@
 package cachet
 
 import (
+	"crypto/md5"
 	"crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -38,11 +40,27 @@ type HTTPMonitor struct {
 	// compiled to Regexp
 	ExpectedBody string `mapstructure:"expected_body"`
 	bodyRegexp   *regexp.Regexp
+
+	// content check
+	ExpectedMd5Sum string `mapstructure:"expected_md5sum"`
+	ExpectedLength int    `mapstructure:"expected_length"`
+
+	// data
+	Data string `mapstructure:"data"`
 }
 
 // TODO: test
 func (monitor *HTTPMonitor) test() bool {
-	req, err := http.NewRequest(monitor.Method, monitor.Target, nil)
+	var req *http.Request
+	var err error
+
+	if monitor.Data != "" {
+		dataBuffer := strings.NewReader(monitor.Data)
+		req, err = http.NewRequest(monitor.Method, monitor.Target, dataBuffer)
+	} else {
+		req, err = http.NewRequest(monitor.Method, monitor.Target, nil)
+	}
+
 	for k, v := range monitor.Headers {
 		req.Header.Add(k, v)
 	}
@@ -67,14 +85,27 @@ func (monitor *HTTPMonitor) test() bool {
 		return false
 	}
 
-	if monitor.bodyRegexp != nil {
-		// check response body
-		responseBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			monitor.lastFailReason = err.Error()
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseLength := len(string(responseBody))
+	if err != nil {
+		monitor.lastFailReason = err.Error()
+		return false
+	}
+
+	if monitor.ExpectedLength > 0 && responseLength != monitor.ExpectedLength {
+		monitor.lastFailReason = "Expected response body length: " + strconv.Itoa(monitor.ExpectedLength) + ", got: " + strconv.Itoa(responseLength)
+		return false
+	}
+
+	if monitor.ExpectedMd5Sum != "" {
+		sum := fmt.Sprintf("%x", (md5.Sum(responseBody)))
+		if strings.Compare(sum, monitor.ExpectedMd5Sum) != 0 {
+			monitor.lastFailReason = "Expected respsone body MD5 checksum: " + monitor.ExpectedMd5Sum + ", got: " + sum
 			return false
 		}
+	}
 
+	if monitor.bodyRegexp != nil {
 		if !monitor.bodyRegexp.Match(responseBody) {
 			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ".\nExpected to match: " + monitor.ExpectedBody
 			return false

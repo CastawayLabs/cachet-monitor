@@ -1,15 +1,15 @@
 package cachet
 
 import (
-	"crypto/tls"
 	"crypto/md5"
+	"crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
 )
 
 // Investigating template
@@ -41,27 +41,27 @@ type HTTPMonitor struct {
 	ExpectedBody string `mapstructure:"expected_body"`
 	bodyRegexp   *regexp.Regexp
 
+	// content check
+	ExpectedMd5Sum string `mapstructure:"expected_md5sum"`
+	ExpectedLength int    `mapstructure:"expected_length"`
+
 	// data
 	Data string `mapstructure:"data"`
-	ExpectedMd5Sum string `mapstructure:"expected_md5sum"`
-	ExpectedLength int `mapstructure:"expected_length"`
 }
 
 // TODO: test
 func (monitor *HTTPMonitor) test() bool {
 	var req *http.Request
 	var err error
+
 	if monitor.Data != "" {
-		fmt.Println("Data: ", monitor.Data)
 		dataBuffer := strings.NewReader(monitor.Data)
 		req, err = http.NewRequest(monitor.Method, monitor.Target, dataBuffer)
-		fmt.Println("Target: ", dataBuffer)
 	} else {
-	  req, err = http.NewRequest(monitor.Method, monitor.Target, nil)
+		req, err = http.NewRequest(monitor.Method, monitor.Target, nil)
 	}
-	fmt.Println("Target: ", monitor.Target)
+
 	for k, v := range monitor.Headers {
-		fmt.Println(k, ": ", v)
 		req.Header.Add(k, v)
 	}
 
@@ -74,7 +74,6 @@ func (monitor *HTTPMonitor) test() bool {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
 		monitor.lastFailReason = err.Error()
 		return false
 	}
@@ -83,18 +82,13 @@ func (monitor *HTTPMonitor) test() bool {
 
 	if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
 		monitor.lastFailReason = "Expected HTTP response status: " + strconv.Itoa(monitor.ExpectedStatusCode) + ", got: " + strconv.Itoa(resp.StatusCode)
-		fmt.Println(monitor.lastFailReason)
 		return false
 	}
 
-	// check response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	responseLength := len(string(responseBody))
-	fmt.Println("Response: ", string(responseBody))
-	fmt.Println("Response len: ", responseLength)
 	if err != nil {
 		monitor.lastFailReason = err.Error()
-		fmt.Println(err.Error())
 		return false
 	}
 
@@ -105,8 +99,6 @@ func (monitor *HTTPMonitor) test() bool {
 
 	if monitor.ExpectedMd5Sum != "" {
 		sum := fmt.Sprintf("%x", (md5.Sum(responseBody)))
-		fmt.Println("Calculated sum", sum)
-		fmt.Println("Expected sum", monitor.ExpectedMd5Sum)
 		if strings.Compare(sum, monitor.ExpectedMd5Sum) != 0 {
 			monitor.lastFailReason = "Expected respsone body MD5 checksum: " + monitor.ExpectedMd5Sum + ", got: " + sum
 			return false
@@ -116,7 +108,6 @@ func (monitor *HTTPMonitor) test() bool {
 	if monitor.bodyRegexp != nil {
 		if !monitor.bodyRegexp.Match(responseBody) {
 			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ".\nExpected to match: " + monitor.ExpectedBody
-			fmt.Println(monitor.lastFailReason)
 			return false
 		}
 	}

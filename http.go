@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"fmt"
 )
 
 // Investigating template
@@ -47,12 +48,19 @@ type HTTPMonitor struct {
 // TODO: test
 func (monitor *HTTPMonitor) test() bool {
 	var dataBuffer *bytes.Buffer = nil
+	var req *http.Request
+	var err error
 	if monitor.Data != "" {
+		fmt.Println("Data: ", monitor.Data)
 		dataBuffer = bytes.NewBuffer([]byte(monitor.Data))
+		req, err = http.NewRequest(monitor.Method, monitor.Target, dataBuffer)
+	} else {
+	  req, err = http.NewRequest(monitor.Method, monitor.Target, nil)
 	}
-
-	req, err := http.NewRequest(monitor.Method, monitor.Target, dataBuffer)
+	fmt.Println("Target: ", monitor.Target)
+	fmt.Println("Target: ", dataBuffer)
 	for k, v := range monitor.Headers {
+		fmt.Println(k, ": ", v)
 		req.Header.Add(k, v)
 	}
 
@@ -65,6 +73,7 @@ func (monitor *HTTPMonitor) test() bool {
 
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Println(err.Error())
 		monitor.lastFailReason = err.Error()
 		return false
 	}
@@ -73,6 +82,7 @@ func (monitor *HTTPMonitor) test() bool {
 
 	if monitor.ExpectedStatusCode > 0 && resp.StatusCode != monitor.ExpectedStatusCode {
 		monitor.lastFailReason = "Expected HTTP response status: " + strconv.Itoa(monitor.ExpectedStatusCode) + ", got: " + strconv.Itoa(resp.StatusCode)
+		fmt.Println(monitor.lastFailReason)
 		return false
 	}
 
@@ -81,11 +91,13 @@ func (monitor *HTTPMonitor) test() bool {
 		responseBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			monitor.lastFailReason = err.Error()
+			fmt.Println(err.Error())
 			return false
 		}
 
 		if !monitor.bodyRegexp.Match(responseBody) {
 			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ".\nExpected to match: " + monitor.ExpectedBody
+			fmt.Println(monitor.lastFailReason)
 			return false
 		}
 	}

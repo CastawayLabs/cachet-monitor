@@ -1,8 +1,8 @@
 package cachet
 
 import (
-	"bytes"
 	"crypto/tls"
+	"crypto/md5"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -41,24 +41,24 @@ type HTTPMonitor struct {
 	ExpectedBody string `mapstructure:"expected_body"`
 	bodyRegexp   *regexp.Regexp
 
-	// JSON data
+	// data
 	Data string `mapstructure:"data"`
+	ExpectedMd5Sum string `mapstructure:"expected_md5sum"`
 }
 
 // TODO: test
 func (monitor *HTTPMonitor) test() bool {
-	var dataBuffer *bytes.Buffer = nil
 	var req *http.Request
 	var err error
 	if monitor.Data != "" {
 		fmt.Println("Data: ", monitor.Data)
-		dataBuffer = bytes.NewBuffer([]byte(monitor.Data))
+		dataBuffer := strings.NewReader(monitor.Data)
 		req, err = http.NewRequest(monitor.Method, monitor.Target, dataBuffer)
+		fmt.Println("Target: ", dataBuffer)
 	} else {
 	  req, err = http.NewRequest(monitor.Method, monitor.Target, nil)
 	}
 	fmt.Println("Target: ", monitor.Target)
-	fmt.Println("Target: ", dataBuffer)
 	for k, v := range monitor.Headers {
 		fmt.Println(k, ": ", v)
 		req.Header.Add(k, v)
@@ -86,15 +86,26 @@ func (monitor *HTTPMonitor) test() bool {
 		return false
 	}
 
-	if monitor.bodyRegexp != nil {
-		// check response body
-		responseBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			monitor.lastFailReason = err.Error()
-			fmt.Println(err.Error())
-			return false
+	// check response body
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	fmt.Println("Response: ", string(responseBody))
+	if err != nil {
+		monitor.lastFailReason = err.Error()
+		fmt.Println(err.Error())
+		return false
+	}
+	if monitor.ExpectedMd5Sum != "" {
+		sum := fmt.Sprintf("%x", (md5.Sum(responseBody)))
+		fmt.Println("Calculated sum", sum)
+		fmt.Println("Expected sum", monitor.ExpectedMd5Sum)
+		equalMd5 := strings.Compare(sum, monitor.ExpectedMd5Sum) == 0
+		if !equalMd5 {
+			monitor.lastFailReason = "Expected Md5 sum: " + monitor.ExpectedMd5Sum + ", got: " + sum
 		}
+		return equalMd5
+	}
 
+	if monitor.bodyRegexp != nil {
 		if !monitor.bodyRegexp.Match(responseBody) {
 			monitor.lastFailReason = "Unexpected body: " + string(responseBody) + ".\nExpected to match: " + monitor.ExpectedBody
 			fmt.Println(monitor.lastFailReason)

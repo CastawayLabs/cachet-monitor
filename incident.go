@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Incident Cachet data model
@@ -14,11 +15,37 @@ type Incident struct {
 	Name    string `json:"name"`
 	Message string `json:"message"`
 	Status  int    `json:"status"`
-	Visible int    `json"visible"`
+	Visible int    `json:"visible"`
 	Notify  bool   `json:"notify"`
 
 	ComponentID     int `json:"component_id"`
 	ComponentStatus int `json:"component_status"`
+}
+
+//Get the last still open incident
+func (mon *AbstractMonitor) Get(cfg *CachetMonitor) (*Incident, error) {
+	requestType := "GET"
+	requestURL := fmt.Sprintf("/incidents?component_id=%d", mon.ComponentID)
+	_, body, err := cfg.API.NewRequest(requestType, requestURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]Incident, 0)
+	if err := json.Unmarshal(body.Data, &data); err != nil {
+		return nil, fmt.Errorf("Cannot parse incident body: %v, %v", err, string(body.Data))
+	}
+	//filter out resolved incidents
+	openIncidents := make([]Incident, 0)
+	for _, i := range data {
+		if i.Status < 4 {
+			openIncidents = append(openIncidents, i)
+		}
+	}
+	if len(openIncidents) == 0 {
+		return nil, nil
+	}
+	return &openIncidents[0], nil
+
 }
 
 // Send - Create or Update incident
@@ -65,9 +92,12 @@ func (incident *Incident) Send(cfg *CachetMonitor) error {
 
 	incident.ID = data.ID
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Could not create/update incident!")
+		return fmt.Errorf("Could not create/update incident")
 	}
-
+	// send slack message
+	if cfg.SlackWebhook != "" {
+		incident.sendSlack(cfg)
+	}
 	return nil
 }
 
@@ -82,7 +112,7 @@ func (incident *Incident) GetComponentStatus(cfg *CachetMonitor) (int, error) {
 	}
 
 	var data struct {
-		Status int `json:"status,string"`
+		Status int `json:"status"`
 	}
 	if err := json.Unmarshal(body.Data, &data); err != nil {
 		return 0, fmt.Errorf("Cannot parse component body: %v. Err = %v", string(body.Data), err)
@@ -109,4 +139,31 @@ func (incident *Incident) SetWatching() {
 // SetFixed sets status to Fixed
 func (incident *Incident) SetFixed() {
 	incident.Status = 4
+}
+
+// Send slack message
+func (incident *Incident) sendSlack(cfg *CachetMonitor) {
+	color := "#bf1932" //red
+	if incident.ComponentStatus == 1 {
+		color = "#36a64f" //green
+	}
+	titleLink := MainUrl(cfg) + "/dashboard/incidents/" + strconv.Itoa(incident.ID)
+	slack := Slack{
+		WebhookURL: cfg.SlackWebhook,
+		Attachments: []Attachments{
+			Attachments{
+				Fallback:   incident.Name,
+				Color:      color,
+				Title:      incident.Name,
+				TitleLink:  titleLink,
+				Text:       incident.Message,
+				Footer:     "Cachet Monitor",
+				FooterIcon: "https://i.imgur.com/spck1w6.png",
+				Ts:         time.Now().Unix(),
+			},
+		}}
+	err := slack.SendSlackNotification()
+	if err != nil {
+		fmt.Errorf("Cannot send slack message. Err = %v", err)
+	}
 }

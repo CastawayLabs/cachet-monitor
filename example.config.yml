@@ -6,6 +6,7 @@ api:
   insecure: false
 # https://golang.org/src/time/format.go#L57
 date_format: 02/01/2006 15:04:05 MST
+slack_webhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 monitors:
   # http monitor example
   - name: google
@@ -15,7 +16,7 @@ monitors:
     strict: true
     # HTTP method
     method: POST
-    
+
     # set to update component (either component_id or metric_id are required)
     component_id: 1
     # set to post lag to cachet metric (graph)
@@ -28,7 +29,7 @@ monitors:
         message: "{{ .Monitor.Name }} check **failed** (server time: {{ .now }})\n\n{{ .FailReason }}"
       fixed:
         subject: "I HAVE BEEN FIXED"
-    
+
     # seconds between checks
     interval: 1
     # seconds for timeout
@@ -63,3 +64,8 @@ monitors:
       - exact: 10 aspmx2.googlemail.com.
       - exact: 1 aspmx.l.google.com.
       - exact: 10 aspmx3.googlemail.com.
+  - name: smtpnine
+    target: smtp.nine.ch
+    type: tcp
+    port: 25
+    component_id: 4

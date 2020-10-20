@@ -5,6 +5,7 @@
     "insecure": false
   },
   "date_format": "02/01/2006 15:04:05 MST",
+  "slack_webhook": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
   "monitors": [
     {
       "name": "google",
@@ -54,6 +55,13 @@
           "exact": "10 aspmx3.googlemail.com."
         }
       ]
+    },
+    {
+      "name": "IN-Ulm IRC",
+      "target": "irc.in-ulm.de",
+      "type": "tcp",
+      "port": "6660",
+      "component_id": 4
     }
   ]
 }

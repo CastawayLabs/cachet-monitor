@@ -11,17 +11,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
-	cachet "github.com/castawaylabs/cachet-monitor"
 	docopt "github.com/docopt/docopt-go"
+	cachet "github.com/milkinteractive/cachet-monitor"
 	"github.com/mitchellh/mapstructure"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
 const usage = `cachet-monitor
 
 Usage:
-  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate]
+  cachet-monitor (-c PATH | --config PATH) [--log=LOGPATH] [--name=NAME] [--immediate] [--restarted]
   cachet-monitor -h | --help | --version
 
 Arguments:
@@ -38,6 +38,7 @@ Options:
   -h --help                      Show this screen.
   --version                      Show version
   --immediate                    Tick immediately (by default waits for first defined interval)
+  --restarted                    Get open incidents before start monitoring (if monitor died or restarted)
   
 Environment varaibles:
   CACHET_API      override API url from configuration
@@ -56,6 +57,10 @@ func main() {
 
 	if immediate, ok := arguments["--immediate"]; ok {
 		cfg.Immediate = immediate.(bool)
+	}
+
+	if restarted, ok := arguments["--restarted"]; ok {
+		cfg.Restarted = restarted.(bool)
 	}
 
 	if name := arguments["--name"]; name != nil {
@@ -179,6 +184,10 @@ func getConfiguration(path string) (*cachet.CachetMonitor, error) {
 			var s cachet.DNSMonitor
 			err = mapstructure.Decode(rawMonitor, &s)
 			t = &s
+    case "tcp":
+      var s cachet.TCPMonitor
+      err = mapstructure.Decode(rawMonitor, &s)
+      t = &s
 		default:
 			logrus.Errorf("Invalid monitor type (index: %d) %v", index, monType)
 			continue

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const DefaultInterval = time.Second * 60
@@ -116,6 +116,16 @@ func (mon *AbstractMonitor) ClockStart(cfg *CachetMonitor, iface MonitorInterfac
 	mon.stopC = make(chan bool)
 	if cfg.Immediate {
 		mon.tick(iface)
+	}
+
+	if cfg.Restarted {
+		initialIncident, err := mon.Get(cfg)
+		if err != nil {
+			logrus.Warn("could not fetch initial incident: %v", err)
+		}
+		if initialIncident != nil {
+			mon.incident = initialIncident
+		}
 	}
 
 	ticker := time.NewTicker(mon.Interval * time.Second)

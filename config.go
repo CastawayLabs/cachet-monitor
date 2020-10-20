@@ -6,17 +6,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type CachetMonitor struct {
 	SystemName  string                   `json:"system_name" yaml:"system_name"`
 	DateFormat  string                   `json:"date_format" yaml:"date_format"`
+	SlackWebhook string                  `json:"slack_webhook" yaml:"slack_webhook"`
 	API         CachetAPI                `json:"api"`
 	RawMonitors []map[string]interface{} `json:"monitors" yaml:"monitors"`
 
 	Monitors  []MonitorInterface `json:"-" yaml:"-"`
 	Immediate bool               `json:"-" yaml:"-"`
+	Restarted bool               `json:"-" yaml:"-"`
 }
 
 // Validate configuration
@@ -86,4 +88,10 @@ func getTemplateData(monitor *AbstractMonitor) map[string]interface{} {
 		"Monitor":    monitor,
 		"now":        time.Now().Format(monitor.config.DateFormat),
 	}
+}
+
+func MainUrl(cfg *CachetMonitor) string {
+	var url = cfg.API.URL
+	var index = strings.Index(url,"/api/")
+	return url[0:index]
 }
